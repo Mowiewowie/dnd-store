@@ -3,12 +3,17 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { formatGold } from '../utils/gold.js';
 
 export function Navbar() {
-  const { user, character, logout } = useAuth();
+  const { user, character, logout, clearCharacter } = useAuth();
   const navigate = useNavigate();
 
   async function handleLogout() {
     await logout();
     navigate('/login');
+  }
+
+  function handleSwitchCharacter() {
+    clearCharacter();
+    navigate('/');
   }
 
   return (
@@ -21,7 +26,8 @@ export function Navbar() {
         {character && (
           <>
             <Link to="/market" className="text-parchment hover:text-gold text-sm">Market</Link>
-            <Link to="/character" className="text-parchment hover:text-gold text-sm">My Character</Link>
+            <Link to="/character" className="text-parchment hover:text-gold text-sm">Purchase History</Link>
+            <button onClick={handleSwitchCharacter} className="text-parchment hover:text-gold text-sm">Switch Character</button>
             {user?.role === 'dm' && (
               <Link to="/dm" className="text-ember hover:text-red-400 text-sm font-semibold">DM Panel</Link>
             )}

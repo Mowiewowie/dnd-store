@@ -30,10 +30,13 @@ function srdCostToCP(cost) {
 }
 
 function itemDescription(detail) {
+  // Magic items use `desc`; equipment uses `description` + `notes`
+  if (detail?.desc?.length) return detail.desc.join(' ');
   return [...(detail?.description || []), ...(detail?.notes || [])].join(' ');
 }
 
 function itemCategory(detail) {
+  if (detail?.rarity?.name) return `${detail.rarity.name} Magic Item`;
   return detail?.equipment_categories?.[0]?.name || 'Equipment';
 }
 
@@ -42,16 +45,21 @@ router.get('/search', requireAuth, async (req, res) => {
   if (!q) return res.json([]);
 
   try {
-    // Use server-side name filtering — no need to fetch the full list
-    const listResp = await fetch(`${SRD_BASE}/equipment?name=${encodeURIComponent(q)}`);
-    if (!listResp.ok) return res.json([]);
-    const data = await listResp.json();
+    const [equipResp, magicResp] = await Promise.all([
+      fetch(`${SRD_BASE}/equipment?name=${encodeURIComponent(q)}`).catch(() => null),
+      fetch(`${SRD_BASE}/magic-items?name=${encodeURIComponent(q)}`).catch(() => null),
+    ]);
 
-    const matches = (data.results || []).slice(0, 20);
+    const equipItems = (equipResp?.ok ? (await equipResp.json()).results || [] : [])
+      .map(i => ({ ...i, _type: 'equipment' }));
+    const magicItems = (magicResp?.ok ? (await magicResp.json()).results || [] : [])
+      .map(i => ({ ...i, _type: 'magic-items' }));
+
+    const matches = [...equipItems, ...magicItems].slice(0, 20);
 
     const results = await Promise.all(
       matches.map(async item => {
-        const detail = await fetchSRD(`/equipment/${item.index}`);
+        const detail = await fetchSRD(`/${item._type}/${item.index}`);
         if (!detail) return null;
         return {
           index: item.index,
