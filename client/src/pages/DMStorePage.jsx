@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { fromCP, formatGold } from '../utils/gold.js';
@@ -15,6 +15,7 @@ export function DMStorePage() {
   const [priceOverride, setPriceOverride] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     api.get(`/stores/${id}`)
@@ -22,6 +23,17 @@ export function DMStorePage() {
       .catch(() => navigate('/dm'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchResults([]);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!search.trim()) { setSearchResults([]); return; }
@@ -44,7 +56,8 @@ export function DMStorePage() {
       custom_price_cp: String(item.srd_default_cp || ''),
       quantity: 1,
     });
-    setPriceOverride(false);
+    // Magic items have no SRD price — jump straight to override so DM can enter one
+    setPriceOverride(!item.srd_default_cp);
     setSearch('');
     setSearchResults([]);
   }
@@ -96,7 +109,7 @@ export function DMStorePage() {
         <div>
           <h2 className="text-xl text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Add Item</h2>
           <form onSubmit={handleAddListing} className="bg-ink border border-gold/30 rounded-lg p-4 space-y-3">
-            <div className="relative">
+            <div className="relative" ref={searchRef}>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}

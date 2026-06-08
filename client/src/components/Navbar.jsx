@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatGold } from '../utils/gold.js';
+import { CopyButton } from './CopyButton.jsx';
 
 export function Navbar() {
   const { user, campaign, character, logout, clearCampaign, clearCharacter } = useAuth();
@@ -28,9 +29,15 @@ export function Navbar() {
           ⚔ The Adventurer's Bazaar
         </Link>
         {campaign && (
-          <span className="text-parchment/40 text-xs border border-gold/20 rounded px-2 py-0.5">
-            {campaign.name}
-          </span>
+          <div className="flex items-center gap-2 border border-gold/20 rounded px-2 py-0.5">
+            <span className="text-parchment/40 text-xs">{campaign.name}</span>
+            {campaign.join_code && (
+              <>
+                <span className="text-gold/40 text-xs font-mono tracking-widest">{campaign.join_code}</span>
+                <CopyButton text={campaign.join_code} />
+              </>
+            )}
+          </div>
         )}
       </div>
 

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../utils/api.js';
+import { CopyButton } from '../components/CopyButton.jsx';
 
-const SELECT_CLASS = 'w-full bg-[#1a1208] border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60 [&>option]:bg-[#1a1208] [&>option]:text-parchment';
+const SELECT_CLASS = 'w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60 [&>option]:bg-ink [&>option]:text-parchment';
 
 export function CampaignSelectPage() {
   const { user, selectCampaign, logout } = useAuth();
@@ -112,9 +113,10 @@ export function CampaignSelectPage() {
                       DM: {camp.dm_username} · {camp.member_count} member{camp.member_count !== 1 ? 's' : ''}
                     </p>
                     {user?.role === 'dm' && camp.dm_id === user.id && (
-                      <p className="text-gold/60 text-xs mt-2 font-mono tracking-widest">
-                        Code: {camp.join_code}
-                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-gold/60 text-xs font-mono tracking-widest">{camp.join_code}</span>
+                        <CopyButton text={camp.join_code} />
+                      </div>
                     )}
                   </button>
                 ))}

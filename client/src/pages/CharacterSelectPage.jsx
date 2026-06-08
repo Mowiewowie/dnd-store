@@ -6,7 +6,7 @@ import { GoldDisplay } from '../components/GoldDisplay.jsx';
 
 const CLASSES = ['Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard', 'Adventurer'];
 
-const SELECT_CLASS = 'w-full bg-[#1a1208] border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60 [&>option]:bg-[#1a1208] [&>option]:text-parchment';
+const SELECT_CLASS = 'w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60 [&>option]:bg-ink [&>option]:text-parchment';
 
 export function CharacterSelectPage() {
   const { campaign, selectCharacter, logout } = useAuth();
