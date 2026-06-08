@@ -39,9 +39,25 @@ function migrate(db) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS campaigns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      dm_id INTEGER NOT NULL REFERENCES users(id),
+      join_code TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS campaign_members (
+      campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (campaign_id, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS characters (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       class TEXT NOT NULL DEFAULT 'Adventurer',
       gold_gp INTEGER NOT NULL DEFAULT 50,
@@ -51,6 +67,7 @@ function migrate(db) {
 
     CREATE TABLE IF NOT EXISTS stores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       description TEXT,
       location TEXT,
@@ -83,7 +100,9 @@ function migrate(db) {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
-
-    INSERT OR IGNORE INTO dm_settings (key, value) VALUES ('price_multiplier', '1.0');
   `);
+
+  // Add campaign_id to pre-existing tables if not already present (idempotent migration)
+  try { db.exec('ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE'); } catch {}
+  try { db.exec('ALTER TABLE stores ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE'); } catch {}
 }

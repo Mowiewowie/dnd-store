@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import { ProtectedRoute, DMRoute } from './components/ProtectedRoute.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
+import { CampaignSelectPage } from './pages/CampaignSelectPage.jsx';
 import { CharacterSelectPage } from './pages/CharacterSelectPage.jsx';
 import { MarketPage } from './pages/MarketPage.jsx';
 import { StoreDetailPage } from './pages/StoreDetailPage.jsx';
@@ -26,26 +27,34 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
+          {/* Campaign selection — shown after login, no campaign required */}
           <Route path="/" element={
             <ProtectedRoute>
+              <CampaignSelectPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Character selection — requires campaign */}
+          <Route path="/characters" element={
+            <ProtectedRoute requireCampaign>
               <CharacterSelectPage />
             </ProtectedRoute>
           } />
 
           <Route path="/market" element={
-            <ProtectedRoute requireCharacter>
+            <ProtectedRoute requireCampaign requireCharacter>
               <Layout><MarketPage /></Layout>
             </ProtectedRoute>
           } />
 
           <Route path="/market/:id" element={
-            <ProtectedRoute requireCharacter>
+            <ProtectedRoute requireCampaign requireCharacter>
               <Layout><StoreDetailPage /></Layout>
             </ProtectedRoute>
           } />
 
           <Route path="/character" element={
-            <ProtectedRoute requireCharacter>
+            <ProtectedRoute requireCampaign requireCharacter>
               <Layout><CharacterPage /></Layout>
             </ProtectedRoute>
           } />

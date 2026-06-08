@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 import authRoutes from './routes/authRoutes.js';
+import campaignRoutes from './routes/campaignRoutes.js';
 import characterRoutes from './routes/characterRoutes.js';
 import storeRoutes from './routes/storeRoutes.js';
 import listingRoutes from './routes/listingRoutes.js';
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/campaigns', campaignRoutes);
 app.use('/api/characters', characterRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/listings', listingRoutes);

@@ -6,8 +6,10 @@ import { GoldDisplay } from '../components/GoldDisplay.jsx';
 
 const CLASSES = ['Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard', 'Adventurer'];
 
+const SELECT_CLASS = 'w-full bg-[#1a1208] border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60 [&>option]:bg-[#1a1208] [&>option]:text-parchment';
+
 export function CharacterSelectPage() {
-  const { selectCharacter } = useAuth();
+  const { campaign, selectCharacter, logout } = useAuth();
   const navigate = useNavigate();
   const [characters, setCharacters] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -41,12 +43,27 @@ export function CharacterSelectPage() {
     }
   }
 
+  async function handleLogout() {
+    await logout();
+    navigate('/login');
+  }
+
   return (
     <div className="min-h-screen bg-[#1a1208] flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
-        <h1 className="text-3xl text-gold text-center mb-2" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>
-          Choose Your Character
-        </h1>
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-3xl text-gold" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>
+            Choose Your Character
+          </h1>
+          <button onClick={handleLogout} className="text-xs text-parchment/40 hover:text-ember transition-colors">
+            Logout
+          </button>
+        </div>
+        {campaign && (
+          <p className="text-parchment/50 text-sm mb-2">
+            Campaign: <span className="text-gold/70">{campaign.name}</span>
+          </p>
+        )}
         <p className="text-parchment/50 text-center text-sm mb-8">Who ventures to the bazaar today?</p>
 
         {characters.length > 0 && (
@@ -86,7 +103,7 @@ export function CharacterSelectPage() {
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60"
+                className="w-full bg-[#1a1208] border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60"
                 placeholder="Character name"
                 required
               />
@@ -96,7 +113,8 @@ export function CharacterSelectPage() {
               <select
                 value={charClass}
                 onChange={e => setCharClass(e.target.value)}
-                className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60"
+                className={SELECT_CLASS}
+                style={{ colorScheme: 'dark' }}
               >
                 {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>

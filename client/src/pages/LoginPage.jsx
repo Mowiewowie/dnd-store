@@ -78,7 +78,8 @@ export function LoginPage() {
               <select
                 value={role}
                 onChange={e => setRole(e.target.value)}
-                className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60"
+                className="w-full bg-[#1a1208] border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/60 [&>option]:bg-[#1a1208] [&>option]:text-parchment"
+                style={{ colorScheme: 'dark' }}
               >
                 <option value="player">Player</option>
                 <option value="dm">Dungeon Master</option>

@@ -1,17 +1,20 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { requireDM } from '../auth.js';
+import { requireDM, requireCampaign } from '../auth.js';
 
 const router = Router();
 
-router.get('/settings', requireDM, (req, res) => {
+function multiplierKey(campaignId) {
+  return `campaign_${campaignId}_price_multiplier`;
+}
+
+router.get('/settings', requireDM, requireCampaign, (req, res) => {
   const db = getDb();
-  const rows = db.prepare('SELECT key, value FROM dm_settings').all();
-  const settings = Object.fromEntries(rows.map(r => [r.key, r.value]));
-  res.json(settings);
+  const row = db.prepare('SELECT value FROM dm_settings WHERE key = ?').get(multiplierKey(req.campaignId));
+  res.json({ price_multiplier: row?.value ?? '1.0' });
 });
 
-router.put('/settings', requireDM, (req, res) => {
+router.put('/settings', requireDM, requireCampaign, (req, res) => {
   const { price_multiplier } = req.body;
   const db = getDb();
 
@@ -20,12 +23,12 @@ router.put('/settings', requireDM, (req, res) => {
     if (isNaN(val) || val <= 0) {
       return res.status(400).json({ error: 'price_multiplier must be a positive number' });
     }
-    db.prepare("INSERT OR REPLACE INTO dm_settings (key, value) VALUES ('price_multiplier', ?)")
-      .run(String(val));
+    db.prepare('INSERT OR REPLACE INTO dm_settings (key, value) VALUES (?, ?)')
+      .run(multiplierKey(req.campaignId), String(val));
   }
 
-  const rows = db.prepare('SELECT key, value FROM dm_settings').all();
-  res.json(Object.fromEntries(rows.map(r => [r.key, r.value])));
+  const row = db.prepare('SELECT value FROM dm_settings WHERE key = ?').get(multiplierKey(req.campaignId));
+  res.json({ price_multiplier: row?.value ?? '1.0' });
 });
 
 export default router;

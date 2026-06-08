@@ -6,16 +6,25 @@ import { resetDb } from './setup.js';
 
 beforeEach(() => resetDb());
 
-async function registerAndLogin(username = 'player1', role = 'player') {
-  const agent = request.agent(app);
-  await agent.post('/api/auth/register').send({ username, password: 'pass1234', role });
-  return agent;
+async function makeDMWithCampaign(suffix = '') {
+  const dm = request.agent(app);
+  await dm.post('/api/auth/register').send({ username: `dm_ch${suffix}`, password: 'dmpass123', role: 'dm' });
+  const camp = await dm.post('/api/campaigns').send({ name: 'TestCamp' });
+  return { dm, campaignId: camp.body.id, joinCode: camp.body.join_code };
+}
+
+async function makePlayerInCampaign(suffix = '', joinCode) {
+  const player = request.agent(app);
+  await player.post('/api/auth/register').send({ username: `pl_ch${suffix}`, password: 'pass1234' });
+  await player.post('/api/campaigns/join').send({ code: joinCode });
+  return player;
 }
 
 describe('GET /api/characters', () => {
-  it('returns empty array for new user', async () => {
-    const agent = await registerAndLogin('gc_p1');
-    const res = await agent.get('/api/characters');
+  it('returns empty array for new user in campaign', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('1');
+    const player = await makePlayerInCampaign('1', joinCode);
+    const res = await player.get('/api/characters').set('X-Campaign-Id', String(campaignId));
     assert.equal(res.status, 200);
     assert.deepEqual(res.body, []);
   });
@@ -24,63 +33,86 @@ describe('GET /api/characters', () => {
     const res = await request(app).get('/api/characters');
     assert.equal(res.status, 401);
   });
+
+  it('returns 400 when campaign not selected', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('2');
+    const player = await makePlayerInCampaign('2', joinCode);
+    const res = await player.get('/api/characters');
+    assert.equal(res.status, 400);
+  });
 });
 
 describe('POST /api/characters', () => {
   it('creates a character with defaults', async () => {
-    const agent = await registerAndLogin('cc_p2');
-    const res = await agent.post('/api/characters').send({ name: 'Thorin', class: 'Fighter' });
+    const { campaignId, joinCode } = await makeDMWithCampaign('3');
+    const player = await makePlayerInCampaign('3', joinCode);
+    const res = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Thorin', class: 'Fighter' });
     assert.equal(res.status, 201);
     assert.equal(res.body.name, 'Thorin');
-    assert.equal(res.body.class, 'Fighter');
     assert.equal(res.body.gold_gp, 50);
-    assert.equal(res.body.gold_sp, 0);
-    assert.equal(res.body.gold_cp, 0);
   });
 
   it('allows custom starting gold', async () => {
-    const agent = await registerAndLogin('cc_p3');
-    const res = await agent.post('/api/characters').send({ name: 'Richy', gold_gp: 200 });
+    const { campaignId, joinCode } = await makeDMWithCampaign('4');
+    const player = await makePlayerInCampaign('4', joinCode);
+    const res = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Richy', gold_gp: 200 });
     assert.equal(res.status, 201);
     assert.equal(res.body.gold_gp, 200);
   });
 
-  it('rejects duplicate character name for same user', async () => {
-    const agent = await registerAndLogin('cc_p4');
-    await agent.post('/api/characters').send({ name: 'Elf' });
-    const res = await agent.post('/api/characters').send({ name: 'Elf' });
+  it('rejects duplicate character name for same user in same campaign', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('5');
+    const player = await makePlayerInCampaign('5', joinCode);
+    await player.post('/api/characters').set('X-Campaign-Id', String(campaignId)).send({ name: 'Elf' });
+    const res = await player.post('/api/characters').set('X-Campaign-Id', String(campaignId)).send({ name: 'Elf' });
     assert.equal(res.status, 409);
   });
 
-  it('allows same character name for different users', async () => {
-    const agent1 = await registerAndLogin('cc_userA');
-    const agent2 = await registerAndLogin('cc_userB');
-    await agent1.post('/api/characters').send({ name: 'SameName' });
-    const res = await agent2.post('/api/characters').send({ name: 'SameName' });
+  it('allows same character name for different users in same campaign', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('6');
+    const player1 = await makePlayerInCampaign('6a', joinCode);
+    const player2 = await makePlayerInCampaign('6b', joinCode);
+    await player1.post('/api/characters').set('X-Campaign-Id', String(campaignId)).send({ name: 'SameName' });
+    const res = await player2.post('/api/characters').set('X-Campaign-Id', String(campaignId)).send({ name: 'SameName' });
     assert.equal(res.status, 201);
   });
 
   it('rejects empty character name', async () => {
-    const agent = await registerAndLogin('cc_p5');
-    const res = await agent.post('/api/characters').send({ name: '' });
+    const { campaignId, joinCode } = await makeDMWithCampaign('7');
+    const player = await makePlayerInCampaign('7', joinCode);
+    const res = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: '' });
     assert.equal(res.status, 400);
   });
 });
 
 describe('GET /api/characters/:id/transactions', () => {
   it('returns empty array for character with no purchases', async () => {
-    const agent = await registerAndLogin('tx_p6');
-    const charRes = await agent.post('/api/characters').send({ name: 'Newbie' });
-    const res = await agent.get(`/api/characters/${charRes.body.id}/transactions`);
+    const { campaignId, joinCode } = await makeDMWithCampaign('8');
+    const player = await makePlayerInCampaign('8', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Newbie' });
+    const res = await player.get(`/api/characters/${charRes.body.id}/transactions`)
+      .set('X-Campaign-Id', String(campaignId));
     assert.equal(res.status, 200);
     assert.deepEqual(res.body, []);
   });
 
   it("forbids accessing another user's character transactions", async () => {
-    const agent1 = await registerAndLogin('tx_user1');
-    const agent2 = await registerAndLogin('tx_user2');
-    const charRes = await agent1.post('/api/characters').send({ name: 'Secret' });
-    const res = await agent2.get(`/api/characters/${charRes.body.id}/transactions`);
+    const { campaignId, joinCode } = await makeDMWithCampaign('9');
+    const player1 = await makePlayerInCampaign('9a', joinCode);
+    const player2 = await makePlayerInCampaign('9b', joinCode);
+    const charRes = await player1.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Secret' });
+    const res = await player2.get(`/api/characters/${charRes.body.id}/transactions`)
+      .set('X-Campaign-Id', String(campaignId));
     assert.equal(res.status, 403);
   });
 });

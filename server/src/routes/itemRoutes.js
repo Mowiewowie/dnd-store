@@ -30,8 +30,8 @@ function srdCostToCP(cost) {
 }
 
 function itemDescription(detail) {
-  // Magic items use `desc`; equipment uses `description` + `notes`
-  if (detail?.desc?.length) return detail.desc.join(' ');
+  const desc = detail?.desc;
+  if (desc) return Array.isArray(desc) ? desc.join(' ') : String(desc);
   return [...(detail?.description || []), ...(detail?.notes || [])].join(' ');
 }
 

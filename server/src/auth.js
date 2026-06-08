@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { getDb } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dnd-store-dev-secret-change-in-prod';
 const COOKIE_NAME = 'dnd_token';
@@ -41,4 +42,20 @@ export function requireDM(req, res, next) {
     }
     next();
   });
+}
+
+// Must be used after requireAuth or requireDM (requires req.user to be set)
+export function requireCampaign(req, res, next) {
+  const campaignId = parseInt(req.headers['x-campaign-id']);
+  if (!campaignId) return res.status(400).json({ error: 'Campaign not selected' });
+
+  const db = getDb();
+  const member = db.prepare(
+    'SELECT 1 FROM campaign_members WHERE campaign_id = ? AND user_id = ?'
+  ).get(campaignId, req.user.id);
+
+  if (!member) return res.status(403).json({ error: 'Not a member of this campaign' });
+
+  req.campaignId = campaignId;
+  next();
 }
