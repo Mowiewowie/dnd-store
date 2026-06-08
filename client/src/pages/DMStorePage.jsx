@@ -3,10 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { fromCP, formatGold } from '../utils/gold.js';
 
+const TEMPERAMENT_LABELS = [
+  { value: -2,   label: 'Generous',   color: 'text-emerald-400' },
+  { value: -1,   label: 'Charitable', color: 'text-emerald-400/70' },
+  { value:  0,   label: 'Impartial',  color: 'text-parchment/60' },
+  { value:  1,   label: 'Shrewd',     color: 'text-ember/70' },
+  { value:  2,   label: 'Cutthroat',  color: 'text-ember' },
+];
+
+function getTemperamentLabel(bias) {
+  const closest = TEMPERAMENT_LABELS.reduce((a, b) =>
+    Math.abs(b.value - bias) < Math.abs(a.value - bias) ? b : a
+  );
+  return closest;
+}
+
 export function DMStorePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [store, setStore] = useState(null);
+  const [bias, setBias] = useState(0);
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -16,13 +32,23 @@ export function DMStorePage() {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const searchRef = useRef(null);
+  const biasTimerRef = useRef(null);
 
   useEffect(() => {
     api.get(`/stores/${id}`)
-      .then(setStore)
+      .then(s => { setStore(s); setBias(s.price_bias ?? 0); })
       .catch(() => navigate('/dm'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  function handleBiasChange(e) {
+    const val = parseFloat(e.target.value);
+    setBias(val);
+    clearTimeout(biasTimerRef.current);
+    biasTimerRef.current = setTimeout(() => {
+      api.patch(`/stores/${id}/temperament`, { bias: val }).catch(() => {});
+    }, 400);
+  }
 
   // Close search dropdown when clicking outside
   useEffect(() => {
@@ -40,7 +66,7 @@ export function DMStorePage() {
     const t = setTimeout(async () => {
       setSearching(true);
       try {
-        const results = await api.get(`/items/search?q=${encodeURIComponent(search)}`);
+        const results = await api.get(`/items/search?q=${encodeURIComponent(search)}&bias=${bias}`);
         setSearchResults(results);
       } catch { setSearchResults([]); }
       finally { setSearching(false); }
@@ -56,8 +82,8 @@ export function DMStorePage() {
       custom_price_cp: String(item.srd_default_cp || ''),
       quantity: 1,
     });
-    // Magic items have no SRD price — jump straight to override so DM can enter one
-    setPriceOverride(!item.srd_default_cp);
+    // All items now have a suggested price (SRD for equipment, DMG estimate for magic items)
+    setPriceOverride(false);
     setSearch('');
     setSearchResults([]);
   }
@@ -109,6 +135,33 @@ export function DMStorePage() {
         <div>
           <h2 className="text-xl text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Add Item</h2>
           <form onSubmit={handleAddListing} className="bg-ink border border-gold/30 rounded-lg p-4 space-y-3">
+            {/* Merchant's Temperament — shifts the bell curve peak for magic item price suggestions */}
+            <div className="pb-3 border-b border-gold/10">
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-parchment/50 text-xs">Merchant's Temperament</label>
+                <span className={`text-xs font-semibold ${getTemperamentLabel(bias).color}`}>
+                  {getTemperamentLabel(bias).label}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="-2"
+                max="2"
+                step="0.1"
+                value={bias}
+                onChange={handleBiasChange}
+                aria-label="Merchant's Temperament"
+                className="w-full h-1 rounded appearance-none cursor-pointer accent-gold"
+                style={{ background: `linear-gradient(to right, #10b981 0%, #d4a94a ${((bias + 2) / 4) * 100}%, #4a4030 ${((bias + 2) / 4) * 100}%, #4a4030 100%)` }}
+              />
+              <div className="flex justify-between text-parchment/25 text-xs mt-0.5 select-none">
+                <span>Generous</span>
+                <span>Cutthroat</span>
+              </div>
+              <p className="text-parchment/30 text-xs mt-1">
+                Affects suggested prices for magic items with no fixed SRD cost.
+              </p>
+            </div>
             <div className="relative" ref={searchRef}>
               <input
                 value={search}
@@ -150,7 +203,13 @@ export function DMStorePage() {
             <div className="flex gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
-                  <label className="text-parchment/50 text-xs">Price {!selected || priceOverride ? '*' : '(SRD 2024)'}</label>
+                  <label className="text-parchment/50 text-xs">
+                    Price {!selected || priceOverride
+                      ? '*'
+                      : selected.price_is_estimate
+                        ? `(DMG Est. · ${selected.rarity})`
+                        : '(SRD 2024)'}
+                  </label>
                   {selected && (
                     <label className="flex items-center gap-1 text-xs text-parchment/50 cursor-pointer select-none">
                       <input

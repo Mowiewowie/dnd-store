@@ -74,7 +74,7 @@ describe('GET /api/items/search', () => {
     }
   });
 
-  it('returns magic items with null price and rarity category', async () => {
+  it('returns magic items with DMG estimated price and rarity metadata', async () => {
     const fetchMock = setupFetchMock({
       magicResults: [{ index: 'cloak-of-protection', name: 'Cloak of Protection' }],
     });
@@ -83,9 +83,54 @@ describe('GET /api/items/search', () => {
       const res = await agent.get('/api/items/search?q=cloak');
       assert.equal(res.status, 200);
       assert.equal(res.body.length, 1);
-      assert.equal(res.body[0].name, 'Cloak of Protection');
-      assert.equal(res.body[0].category, 'Uncommon Magic Item');
-      assert.equal(res.body[0].srd_default_cp, null);
+      const item = res.body[0];
+      assert.equal(item.name, 'Cloak of Protection');
+      assert.equal(item.category, 'Uncommon Magic Item');
+      assert.equal(item.rarity, 'Uncommon');
+      assert.equal(item.price_is_estimate, true);
+      // Uncommon range: 150–900 gp → 15,000–90,000 cp
+      assert.ok(item.srd_default_cp >= 15000 && item.srd_default_cp <= 90000,
+        `Expected Uncommon price 15000–90000 cp, got ${item.srd_default_cp}`);
+    } finally {
+      fetchMock.mock.restore();
+    }
+  });
+
+  it('bias=2 produces higher price than bias=-2 for same magic item', async () => {
+    const fetchMock = setupFetchMock({
+      magicResults: [{ index: 'cloak-of-protection', name: 'Cloak of Protection' }],
+    });
+    try {
+      const agent = await loginAndGetAgent();
+      const [generous, cutthroat] = await Promise.all([
+        agent.get('/api/items/search?q=cloak&bias=-2'),
+        agent.get('/api/items/search?q=cloak&bias=2'),
+      ]);
+      assert.equal(generous.status, 200);
+      assert.equal(cutthroat.status, 200);
+      // Cutthroat store should suggest a higher price than generous store
+      assert.ok(
+        cutthroat.body[0].srd_default_cp >= generous.body[0].srd_default_cp,
+        `Expected cutthroat (${cutthroat.body[0].srd_default_cp}) >= generous (${generous.body[0].srd_default_cp})`
+      );
+    } finally {
+      fetchMock.mock.restore();
+    }
+  });
+
+  it('bias has no effect on equipment with fixed SRD price', async () => {
+    const fetchMock = setupFetchMock({
+      equipResults: [{ index: 'shield', name: 'Shield' }],
+    });
+    try {
+      const agent = await loginAndGetAgent();
+      const [neutral, cutthroat] = await Promise.all([
+        agent.get('/api/items/search?q=shield&bias=0'),
+        agent.get('/api/items/search?q=shield&bias=2'),
+      ]);
+      // SRD price is fixed — bias doesn't change it
+      assert.equal(neutral.body[0].srd_default_cp, cutthroat.body[0].srd_default_cp);
+      assert.equal(neutral.body[0].price_is_estimate, false);
     } finally {
       fetchMock.mock.restore();
     }

@@ -71,7 +71,8 @@ function migrate(db) {
       name TEXT NOT NULL,
       description TEXT,
       location TEXT,
-      is_open INTEGER NOT NULL DEFAULT 1
+      is_open INTEGER NOT NULL DEFAULT 1,
+      price_bias REAL NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS listings (
@@ -105,4 +106,6 @@ function migrate(db) {
   // Add campaign_id to pre-existing tables if not already present (idempotent migration)
   try { db.exec('ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE'); } catch {}
   try { db.exec('ALTER TABLE stores ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE'); } catch {}
+  // Per-store price bias for Merchant's Temperament feature
+  try { db.exec('ALTER TABLE stores ADD COLUMN price_bias REAL NOT NULL DEFAULT 0'); } catch {}
 }

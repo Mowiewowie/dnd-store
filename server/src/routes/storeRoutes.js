@@ -76,6 +76,22 @@ router.put('/:id', requireDM, requireCampaign, (req, res) => {
   res.json(db.prepare('SELECT * FROM stores WHERE id = ?').get(req.params.id));
 });
 
+// Update Merchant's Temperament (price bias) for a store
+// bias: -2.0 (Generous) to +2.0 (Cutthroat), shifts the bell curve peak
+router.patch('/:id/temperament', requireDM, requireCampaign, (req, res) => {
+  const bias = parseFloat(req.body.bias);
+  if (isNaN(bias) || bias < -2 || bias > 2) {
+    return res.status(400).json({ error: 'bias must be a number between -2 and 2' });
+  }
+  const db = getDb();
+  const store = db.prepare('SELECT id, campaign_id FROM stores WHERE id = ?').get(req.params.id);
+  if (!store) return res.status(404).json({ error: 'Store not found' });
+  if (store.campaign_id !== req.campaignId) return res.status(403).json({ error: 'Store not in your campaign' });
+
+  db.prepare('UPDATE stores SET price_bias = ? WHERE id = ?').run(bias, req.params.id);
+  res.json({ price_bias: bias });
+});
+
 router.delete('/:id', requireDM, requireCampaign, (req, res) => {
   const db = getDb();
   const store = db.prepare('SELECT id, campaign_id FROM stores WHERE id = ?').get(req.params.id);
