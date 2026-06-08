@@ -15,7 +15,13 @@ server/data/*.db-wal
 # Environment files (may contain secrets)
 server/.env
 server/.env.local
+server/.env.development
 server/.env.production
+
+# SQLite dev database
+server/*.db
+server/*.db-shm
+server/*.db-wal
 
 # Logs
 *.log

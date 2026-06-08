@@ -12,6 +12,7 @@ export function DMStorePage() {
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ item_name: '', item_description: '', custom_price_cp: '', quantity: 1 });
+  const [priceOverride, setPriceOverride] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -37,13 +38,13 @@ export function DMStorePage() {
 
   function selectSRDItem(item) {
     setSelected(item);
-    const { gp, sp, cp } = fromCP(item.srd_default_cp || 0);
     setForm({
       item_name: item.name,
       item_description: item.description,
       custom_price_cp: String(item.srd_default_cp || ''),
       quantity: 1,
     });
+    setPriceOverride(false);
     setSearch('');
     setSearchResults([]);
   }
@@ -60,13 +61,14 @@ export function DMStorePage() {
         item_srd_index: selected?.index || null,
         item_name: form.item_name,
         item_description: form.item_description,
-        custom_price_cp: form.custom_price_cp ? parseInt(form.custom_price_cp) : null,
+        custom_price_cp: (selected && !priceOverride) ? null : (form.custom_price_cp ? parseInt(form.custom_price_cp) : null),
         srd_default_cp: selected?.srd_default_cp || null,
         quantity: parseInt(form.quantity),
       });
-      setStore(prev => ({ ...prev, listings: [...prev.listings, { ...listing, effective_price_cp: listing.custom_price_cp }] }));
+      setStore(prev => ({ ...prev, listings: [...prev.listings, { ...listing, effective_price_cp: listing.custom_price_cp ?? listing.srd_default_cp }] }));
       setForm({ item_name: '', item_description: '', custom_price_cp: '', quantity: 1 });
       setSelected(null);
+      setPriceOverride(false);
       showToast('Listing added!');
     } catch (err) {
       showToast(`Error: ${err.message}`);
@@ -134,18 +136,41 @@ export function DMStorePage() {
             />
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-parchment/50 text-xs mb-1">Price (CP) *</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.custom_price_cp}
-                  onChange={e => setForm(p => ({ ...p, custom_price_cp: e.target.value }))}
-                  placeholder="0"
-                  required
-                  className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
-                />
-                {form.custom_price_cp && (
-                  <p className="text-gold text-xs mt-1">{formatGold(...Object.values(fromCP(parseInt(form.custom_price_cp) || 0)))}</p>
+                <div className="flex items-center gap-3 mb-1">
+                  <label className="text-parchment/50 text-xs">Price {!selected || priceOverride ? '*' : '(SRD 2024)'}</label>
+                  {selected && (
+                    <label className="flex items-center gap-1 text-xs text-parchment/50 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={priceOverride}
+                        onChange={e => setPriceOverride(e.target.checked)}
+                        className="accent-gold"
+                      />
+                      Override price
+                    </label>
+                  )}
+                </div>
+                {selected && !priceOverride ? (
+                  <div className="w-full bg-stone/10 border border-gold/10 rounded px-3 py-2 text-parchment/60 text-sm">
+                    {form.custom_price_cp
+                      ? formatGold(...Object.values(fromCP(parseInt(form.custom_price_cp) || 0)))
+                      : '—'}
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.custom_price_cp}
+                      onChange={e => setForm(p => ({ ...p, custom_price_cp: e.target.value }))}
+                      placeholder="0 cp"
+                      required
+                      className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+                    />
+                    {form.custom_price_cp && (
+                      <p className="text-gold text-xs mt-1">{formatGold(...Object.values(fromCP(parseInt(form.custom_price_cp) || 0)))}</p>
+                    )}
+                  </>
                 )}
               </div>
               <div>
