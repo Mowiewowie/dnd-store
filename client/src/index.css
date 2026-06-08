@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@400;700&display=swap');
+
+body {
+  margin: 0;
+  background-color: #1a1208;
+  color: #f5e6c8;
+  font-family: 'Lato', sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
