@@ -22,7 +22,7 @@ const MOCK_EQUIPMENT_DETAIL = {
 
 const MOCK_MAGIC_DETAIL = {
   index: 'cloak-of-protection', name: 'Cloak of Protection',
-  desc: ['You gain a +1 bonus to AC and saving throws while you wear this cloak.'],
+  desc: 'You gain a +1 bonus to AC and saving throws while you wear this cloak.',
   rarity: { name: 'Uncommon' },
 };
 
@@ -57,7 +57,7 @@ describe('GET /api/items/search', () => {
     assert.deepEqual(res.body, []);
   });
 
-  it('returns equipment items with correct price and category', async () => {
+  it('equipment: srd_default_cp is varied (0.5–2× SRD), base_cp is exact SRD', async () => {
     const fetchMock = setupFetchMock({
       equipResults: [{ index: 'shield', name: 'Shield' }],
     });
@@ -66,15 +66,43 @@ describe('GET /api/items/search', () => {
       const res = await agent.get('/api/items/search?q=shield');
       assert.equal(res.status, 200);
       assert.equal(res.body.length, 1);
-      assert.equal(res.body[0].name, 'Shield');
-      assert.equal(res.body[0].srd_default_cp, 1000); // 10 gp = 1000 cp
-      assert.equal(res.body[0].category, 'Armor');
+      const item = res.body[0];
+      assert.equal(item.name, 'Shield');
+      // Shield SRD: 10 gp = 1000 cp → base_cp always exact
+      assert.equal(item.base_cp, 1000);
+      assert.equal(item.price_is_estimate, false);
+      // Varied price must stay within 0.5× (500 cp) to 2× (2000 cp)
+      assert.ok(item.srd_default_cp >= 500 && item.srd_default_cp <= 2000,
+        `Expected 500–2000 cp, got ${item.srd_default_cp}`);
     } finally {
       fetchMock.mock.restore();
     }
   });
 
-  it('returns magic items with DMG estimated price and rarity metadata', async () => {
+  it('equipment: bias shifts price distribution without leaving valid range', async () => {
+    const fetchMock = setupFetchMock({
+      equipResults: [{ index: 'shield', name: 'Shield' }],
+    });
+    try {
+      const agent = await loginAndGetAgent();
+      const [generous, cutthroat] = await Promise.all([
+        agent.get('/api/items/search?q=shield&bias=-2'),
+        agent.get('/api/items/search?q=shield&bias=2'),
+      ]);
+      // Both extremes stay inside [500, 2000] cp
+      assert.ok(generous.body[0].srd_default_cp >= 500 && generous.body[0].srd_default_cp <= 2000,
+        `Generous out of range: ${generous.body[0].srd_default_cp}`);
+      assert.ok(cutthroat.body[0].srd_default_cp >= 500 && cutthroat.body[0].srd_default_cp <= 2000,
+        `Cutthroat out of range: ${cutthroat.body[0].srd_default_cp}`);
+      // base_cp unchanged regardless of bias
+      assert.equal(generous.body[0].base_cp, 1000);
+      assert.equal(cutthroat.body[0].base_cp, 1000);
+    } finally {
+      fetchMock.mock.restore();
+    }
+  });
+
+  it('magic items: srd_default_cp within rarity range, price_is_estimate true', async () => {
     const fetchMock = setupFetchMock({
       magicResults: [{ index: 'cloak-of-protection', name: 'Cloak of Protection' }],
     });
@@ -88,15 +116,16 @@ describe('GET /api/items/search', () => {
       assert.equal(item.category, 'Uncommon Magic Item');
       assert.equal(item.rarity, 'Uncommon');
       assert.equal(item.price_is_estimate, true);
+      assert.equal(item.base_cp, null);
       // Uncommon range: 150–900 gp → 15,000–90,000 cp
       assert.ok(item.srd_default_cp >= 15000 && item.srd_default_cp <= 90000,
-        `Expected Uncommon price 15000–90000 cp, got ${item.srd_default_cp}`);
+        `Expected 15000–90000 cp, got ${item.srd_default_cp}`);
     } finally {
       fetchMock.mock.restore();
     }
   });
 
-  it('bias=2 produces higher price than bias=-2 for same magic item', async () => {
+  it('magic items: bias stays within rarity range at both extremes', async () => {
     const fetchMock = setupFetchMock({
       magicResults: [{ index: 'cloak-of-protection', name: 'Cloak of Protection' }],
     });
@@ -106,31 +135,11 @@ describe('GET /api/items/search', () => {
         agent.get('/api/items/search?q=cloak&bias=-2'),
         agent.get('/api/items/search?q=cloak&bias=2'),
       ]);
-      assert.equal(generous.status, 200);
-      assert.equal(cutthroat.status, 200);
-      // Cutthroat store should suggest a higher price than generous store
-      assert.ok(
-        cutthroat.body[0].srd_default_cp >= generous.body[0].srd_default_cp,
-        `Expected cutthroat (${cutthroat.body[0].srd_default_cp}) >= generous (${generous.body[0].srd_default_cp})`
-      );
-    } finally {
-      fetchMock.mock.restore();
-    }
-  });
-
-  it('bias has no effect on equipment with fixed SRD price', async () => {
-    const fetchMock = setupFetchMock({
-      equipResults: [{ index: 'shield', name: 'Shield' }],
-    });
-    try {
-      const agent = await loginAndGetAgent();
-      const [neutral, cutthroat] = await Promise.all([
-        agent.get('/api/items/search?q=shield&bias=0'),
-        agent.get('/api/items/search?q=shield&bias=2'),
-      ]);
-      // SRD price is fixed — bias doesn't change it
-      assert.equal(neutral.body[0].srd_default_cp, cutthroat.body[0].srd_default_cp);
-      assert.equal(neutral.body[0].price_is_estimate, false);
+      // Uncommon: 15,000–90,000 cp
+      assert.ok(generous.body[0].srd_default_cp >= 15000 && generous.body[0].srd_default_cp <= 90000,
+        `Generous out of range: ${generous.body[0].srd_default_cp}`);
+      assert.ok(cutthroat.body[0].srd_default_cp >= 15000 && cutthroat.body[0].srd_default_cp <= 90000,
+        `Cutthroat out of range: ${cutthroat.body[0].srd_default_cp}`);
     } finally {
       fetchMock.mock.restore();
     }

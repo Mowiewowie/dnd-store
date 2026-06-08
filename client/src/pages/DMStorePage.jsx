@@ -208,7 +208,9 @@ export function DMStorePage() {
                       ? '*'
                       : selected.price_is_estimate
                         ? `(DMG Est. · ${selected.rarity})`
-                        : '(SRD 2024)'}
+                        : selected.base_cp
+                          ? `(~${formatGold(...Object.values(fromCP(selected.base_cp)))} SRD)`
+                          : '(Market Price)'}
                   </label>
                   {selected && (
                     <label className="flex items-center gap-1 text-xs text-parchment/50 cursor-pointer select-none">

@@ -18,56 +18,40 @@ const RARITY_PRICES_GP = {
   'Legendary': { min: 500000,  mid: 1500000,  max: 6000000  },
 };
 
-// FNV-1a hash → deterministic seed from item index string
-function fnv1a(str) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
+// Shared log-normal sampler (Box-Muller + rejection). Fresh random each call.
+// logMin/logMid/logMax are natural logs of the value boundaries.
+// bias: -2.0 (shift peak toward min) to +2.0 (shift peak toward max).
+// σ is calibrated so 3σ covers midpoint to the nearer boundary → ~99.7% within range.
+function bellCurveRoll(logMin, logMid, logMax, bias = 0) {
+  const sigma = Math.min(logMid - logMin, logMax - logMid) / 3;
+  const peak = Math.max(logMin, Math.min(logMax, logMid + bias * sigma));
+  let logVal = peak;
+  for (let i = 0; i < 100; i++) {
+    const u1 = Math.max(Math.random(), 1e-10);
+    const u2 = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    const c = peak + sigma * z;
+    if (c >= logMin && c <= logMax) { logVal = c; break; }
   }
-  return h;
+  return Math.round(Math.exp(logVal));
 }
 
-// Xorshift32 PRNG step
-function xorshift32(n) {
-  let s = n === 0 ? 1 : n;
-  s ^= s << 13; s ^= s >> 17; s ^= s << 5;
-  return s >>> 0;
-}
-
-// Log-normal bell curve price in CP, deterministic per itemIndex.
-// Works in log space: mean = log(mid) + bias*σ, where σ is chosen so 3σ covers
-// midpoint to the nearer range boundary → ~99.7% of samples land within [min, max].
-// bias: -2.0 (Generous/cheap) to +2.0 (Cutthroat/expensive); 0 = neutral.
-// Uses Box-Muller + rejection sampling seeded by item index for consistency.
-function rarityBasedPriceCP(rarityName, itemIndex, bias = 0) {
+// Magic item: random price from rarity bell curve (GP → CP).
+function rarityBasedPriceCP(rarityName, bias = 0) {
   const config = RARITY_PRICES_GP[rarityName];
   if (!config) return null;
   const { min, mid, max } = config;
+  const priceGP = bellCurveRoll(Math.log(min), Math.log(mid), Math.log(max), bias);
+  return Math.max(min, Math.min(max, priceGP)) * 100;
+}
 
-  const logMin = Math.log(min);
-  const logMid = Math.log(mid);
-  const logMax = Math.log(max);
-  const sigma = Math.min(logMid - logMin, logMax - logMid) / 3;
-
-  // Shift the peak by bias*σ, clamped so it stays inside [logMin, logMax]
-  const shiftedMid = Math.max(logMin, Math.min(logMax, logMid + bias * sigma));
-
-  let s = fnv1a(String(itemIndex));
-  let logPrice = shiftedMid;
-
-  for (let i = 0; i < 100; i++) {
-    s = xorshift32(s);
-    const u1 = Math.max((s >>> 0) / 0x100000000, 1e-10);
-    s = xorshift32(s);
-    const u2 = (s >>> 0) / 0x100000000;
-    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-    const candidate = shiftedMid + sigma * z;
-    if (candidate >= logMin && candidate <= logMax) { logPrice = candidate; break; }
-  }
-
-  const priceGP = Math.max(min, Math.min(max, Math.round(Math.exp(logPrice))));
-  return priceGP * 100; // GP → CP
+// Equipment: SRD price is the midpoint; range is 0.5× to 2.0× SRD.
+// σ = log(2)/3 ≈ 0.231 → 68% of prices within ±26% of SRD, all within 50–200%.
+function equipmentVariedPriceCP(srdCP, bias = 0) {
+  const min = srdCP * 0.5;
+  const max = srdCP * 2.0;
+  const priceCP = bellCurveRoll(Math.log(min), Math.log(srdCP), Math.log(max), bias);
+  return Math.max(Math.round(min), Math.min(Math.round(max), priceCP));
 }
 
 async function fetchSRD(path) {
@@ -127,17 +111,27 @@ router.get('/search', requireAuth, async (req, res) => {
       matches.map(async item => {
         const detail = await fetchSRD(`/${item._type}/${item.index}`);
         if (!detail) return null;
-        const rawCP = srdCostToCP(detail.cost);
+
+        const baseCP = srdCostToCP(detail.cost);   // exact SRD price; null for magic items
         const rarityName = detail.rarity?.name || null;
-        const priceIsEstimate = !rawCP && !!rarityName;
-        const estimatedCP = priceIsEstimate ? rarityBasedPriceCP(rarityName, item.index, bias) : null;
+
+        // Both equipment and magic items get a bell-curve-varied suggested price.
+        // Equipment uses SRD as midpoint; magic items use DMG rarity range.
+        let variedCP = null;
+        if (baseCP) {
+          variedCP = equipmentVariedPriceCP(baseCP, bias);
+        } else if (rarityName) {
+          variedCP = rarityBasedPriceCP(rarityName, bias);
+        }
+
         return {
           index: item.index,
           name: item.name,
           description: itemDescription(detail),
           category: itemCategory(detail),
-          srd_default_cp: rawCP ?? estimatedCP,
-          price_is_estimate: priceIsEstimate,
+          srd_default_cp: variedCP,
+          base_cp: baseCP,           // original SRD price for UI reference; null for magic items
+          price_is_estimate: !baseCP && !!rarityName,
           rarity: rarityName,
           weight: detail.weight || null,
         };
