@@ -1,0 +1,10 @@
+{
+  "name": "dnd-store",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --experimental-sqlite server/src/index.js"
+  }
+}

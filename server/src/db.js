@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { mkdirSync } from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -10,6 +11,9 @@ let db;
 
 export function getDb() {
   if (!db) {
+    if (DB_PATH !== ':memory:') {
+      mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    }
     db = new DatabaseSync(DB_PATH);
     db.exec("PRAGMA journal_mode = WAL");
     db.exec("PRAGMA foreign_keys = ON");
