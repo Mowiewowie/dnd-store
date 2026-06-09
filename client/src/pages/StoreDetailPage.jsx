@@ -9,7 +9,7 @@ import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
 function ListingCard({ listing, onBuy, isAlt }) {
   const { gp, sp, cp } = fromCP(listing.effective_price_cp || 0);
   return (
-    <div className={`card p-4 flex justify-between items-center gap-4${isAlt ? ' bg-stone/5' : ''}`}>
+    <div className={`card p-4 flex justify-between items-center gap-4${isAlt ? ' !bg-[#1a1208]' : ''}`}>
       <div className="flex-1 min-w-0">
         <p className="text-parchment font-semibold truncate">{listing.item_name}</p>
         {listing.item_description && (
@@ -278,7 +278,7 @@ export function StoreDetailPage() {
                 const offerCP = getOfferCP(item);
                 const { gp, sp, cp } = fromCP(offerCP);
                 return (
-                  <div key={item.id} className={`card p-4 flex justify-between items-center gap-4${i % 2 === 1 ? ' bg-stone/5' : ''}`}>
+                  <div key={item.id} className={`card p-4 flex justify-between items-center gap-4${i % 2 === 1 ? ' !bg-[#1a1208]' : ''}`}>
                     <div className="flex-1 min-w-0">
                       <p className="text-parchment font-semibold truncate">{item.item_name}</p>
                       {item.item_description && (

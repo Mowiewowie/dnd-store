@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { fromCP, formatGold } from '../utils/gold.js';
 import { Toast } from '../components/Toast.jsx';
-import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
 
 const TEMPERAMENT_LABELS = [
   { value: -2,   label: 'Generous',   color: 'text-gold-light' },
@@ -322,7 +321,7 @@ export function DMStorePage() {
                 return (
                   <div
                     key={listing.id}
-                    className={`card p-3 ${i % 2 === 1 ? 'bg-stone/5' : ''}`}
+                    className={`card p-3 ${i % 2 === 1 ? '!bg-[#1a1208]' : ''}`}
                   >
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">

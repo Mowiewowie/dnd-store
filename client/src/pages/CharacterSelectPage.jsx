@@ -91,7 +91,7 @@ export function CharacterSelectPage() {
                 tabIndex={0}
                 onClick={() => handleSelect(char)}
                 onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleSelect(char)}
-                className="card-fancy hover:border-gold/60 p-4 text-left transition-all hover:bg-stone/10 group cursor-pointer"
+                className="card-fancy hover:border-gold/60 p-4 text-left transition-all group cursor-pointer"
               >
                 <div className="flex justify-between items-start">
                   <div>

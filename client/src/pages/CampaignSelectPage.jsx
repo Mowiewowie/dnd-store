@@ -104,7 +104,7 @@ export function CampaignSelectPage() {
                   <button
                     key={camp.id}
                     onClick={() => handleSelect(camp)}
-                    className="card-fancy hover:border-gold/60 p-4 text-left transition-all hover:bg-stone/10 group"
+                    className="card-fancy hover:border-gold/60 p-4 text-left transition-all group"
                   >
                     <p className="text-parchment font-bold text-lg group-hover:text-gold transition-colors">
                       {camp.name}
