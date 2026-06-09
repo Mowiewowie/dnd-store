@@ -73,8 +73,8 @@ export function Navbar() {
             textShadow: '0 0 20px rgba(201,168,76,0.3)',
           }}
         >
-          <span className="hidden sm:inline text-lg">⚔ The Adventurer's Bazaar</span>
-          <span className="sm:hidden text-base">⚔ Bazaar</span>
+          <span className="hidden sm:inline text-lg text-gold">⚔ The Adventurer's Bazaar</span>
+          <span className="sm:hidden text-base text-gold">⚔ Bazaar</span>
         </Link>
 
         {campaign && (

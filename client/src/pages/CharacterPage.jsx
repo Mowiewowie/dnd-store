@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../utils/api.js';
 import { GoldDisplay } from '../components/GoldDisplay.jsx';
+import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
+import { Toast } from '../components/Toast.jsx';
 import { fromCP, formatGold } from '../utils/gold.js';
 
 const TX_LABELS = {
-  purchase: { label: 'Bought', color: 'text-ember' },
-  sale: { label: 'Sold', color: 'text-emerald-400' },
-  adjustment: { label: 'Adjusted', color: 'text-parchment/60' },
+  purchase:      { label: 'Bought',   color: 'text-ember' },
+  sale:          { label: 'Sold',     color: 'text-gold-light' },
+  adjustment:    { label: 'Adjusted', color: 'text-parchment/60' },
   dm_adjustment: { label: 'DM Grant', color: 'text-gold/70' },
 };
 
@@ -63,7 +65,6 @@ export function CharacterPage() {
       });
       selectCharacter({ ...character, ...updated });
       setGoldForm({ amount: '', unit: 'gp', direction: 'add', notes: '' });
-      // Append to transaction history if it's loaded
       setTransactions(prev => prev.length > 0 ? [{
         id: Date.now(),
         item_name: 'Gold adjustment',
@@ -90,33 +91,34 @@ export function CharacterPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-3xl text-gold mb-6" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>
-        {character.name}
-      </h1>
+      <h1 className="fantasy-heading text-3xl">{character.name}</h1>
+      <div className="section-divider" />
 
       {/* Character summary */}
-      <div className="bg-ink border border-gold/30 rounded-lg p-5 mb-6">
+      <div className="card-fancy p-5 mb-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-parchment/50 text-sm mb-1">Class</p>
+            <p className="text-parchment/50 text-xs uppercase tracking-wider mb-1">Class</p>
             <p className="text-parchment font-semibold">{character.class}</p>
           </div>
           <div>
-            <p className="text-parchment/50 text-sm mb-1">Gold</p>
+            <p className="text-parchment/50 text-xs uppercase tracking-wider mb-1">Gold</p>
             <GoldDisplay gp={character.gold_gp} sp={character.gold_sp} cp={character.gold_cp} className="text-lg" />
           </div>
         </div>
       </div>
 
       {/* Gold adjustment */}
-      <div className="bg-ink border border-gold/20 rounded-lg p-4 mb-6">
-        <h2 className="text-gold text-sm font-semibold mb-3" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Adjust Gold</h2>
+      <div className="card-fancy p-4 mb-6">
+        <h2 className="fantasy-heading text-sm mb-1">Adjust Gold</h2>
+        <OrnamentDivider className="my-2" />
         <form onSubmit={handleGoldAdjust} className="space-y-2">
           <div className="flex gap-2">
             <select
               value={goldForm.direction}
               onChange={e => setGoldForm(p => ({ ...p, direction: e.target.value }))}
-              className="bg-stone/20 border border-gold/20 rounded px-2 py-1.5 text-parchment text-sm focus:outline-none"
+              className="input-field text-sm !w-auto"
+              style={{ colorScheme: 'dark' }}
             >
               <option value="add">Receive</option>
               <option value="subtract">Spend / Lose</option>
@@ -128,12 +130,13 @@ export function CharacterPage() {
               value={goldForm.amount}
               onChange={e => setGoldForm(p => ({ ...p, amount: e.target.value }))}
               placeholder="Amount"
-              className="flex-1 bg-stone/20 border border-gold/20 rounded px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm flex-1"
             />
             <select
               value={goldForm.unit}
               onChange={e => setGoldForm(p => ({ ...p, unit: e.target.value }))}
-              className="bg-stone/20 border border-gold/20 rounded px-2 py-1.5 text-parchment text-sm focus:outline-none"
+              className="input-field text-sm !w-auto"
+              style={{ colorScheme: 'dark' }}
             >
               <option value="gp">GP</option>
               <option value="sp">SP</option>
@@ -144,29 +147,30 @@ export function CharacterPage() {
             value={goldForm.notes}
             onChange={e => setGoldForm(p => ({ ...p, notes: e.target.value }))}
             placeholder="Reason (e.g. Quest reward, Gambling)"
-            className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold/50"
+            className="input-field text-sm"
           />
-          {goldError && <p className="text-red-400 text-xs">{goldError}</p>}
-          <button type="submit" className="w-full bg-gold/80 hover:bg-gold text-ink font-bold py-1.5 rounded text-sm transition-colors">
+          {goldError && <p className="text-ember-light text-xs">{goldError}</p>}
+          <button type="submit" className="btn btn-primary w-full py-2 text-sm">
             Log Change
           </button>
         </form>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-stone/20 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => setTab('inventory')}
-          className={`px-5 py-1.5 rounded text-sm font-semibold transition-colors ${tab === 'inventory' ? 'bg-gold text-ink' : 'text-parchment/50 hover:text-parchment'}`}
-        >
-          Inventory
-        </button>
-        <button
-          onClick={() => setTab('history')}
-          className={`px-5 py-1.5 rounded text-sm font-semibold transition-colors ${tab === 'history' ? 'bg-gold text-ink' : 'text-parchment/50 hover:text-parchment'}`}
-        >
-          History
-        </button>
+      {/* Tab bar — bottom border indicator */}
+      <div className="flex border-b border-gold/20 mb-6">
+        {[{ key: 'inventory', label: 'Inventory' }, { key: 'history', label: 'History' }].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`px-6 pb-2 text-sm font-semibold transition-colors ${
+              tab === key
+                ? 'text-gold border-b-2 border-gold -mb-px'
+                : 'text-parchment/40 hover:text-parchment/70'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {tab === 'inventory' && (
@@ -177,14 +181,14 @@ export function CharacterPage() {
         ) : (
           <div className="space-y-2">
             {inventory.map(item => (
-              <div key={item.id} className="bg-ink border border-gold/20 rounded p-3 flex justify-between items-center">
+              <div key={item.id} className="card p-3 flex justify-between items-center">
                 <div>
                   <p className="text-parchment text-sm font-semibold">{item.item_name}</p>
                   <p className="text-parchment/40 text-xs">Qty: {item.quantity}</p>
                 </div>
                 <button
                   onClick={() => handleRemoveItem(item.id)}
-                  className="text-ember hover:text-red-400 text-xs transition-colors"
+                  className="text-ember/60 hover:text-ember-light text-xs transition-colors"
                 >
                   Discard
                 </button>
@@ -206,7 +210,7 @@ export function CharacterPage() {
               const info = TX_LABELS[tx.type] || TX_LABELS.adjustment;
               const isSale = tx.type === 'sale';
               return (
-                <div key={tx.id} className="bg-ink border border-gold/20 rounded p-3 flex justify-between items-center">
+                <div key={tx.id} className="card p-3 flex justify-between items-center">
                   <div>
                     <p className="text-parchment text-sm font-semibold">{tx.item_name}</p>
                     <p className="text-parchment/40 text-xs">
@@ -215,7 +219,7 @@ export function CharacterPage() {
                       {' · '}{new Date(tx.purchased_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <p className={`text-sm font-semibold ${isSale ? 'text-emerald-400' : 'text-parchment/60'}`}>
+                  <p className={`text-sm font-semibold ${isSale ? 'text-gold-light' : 'text-parchment/60'}`}>
                     {isSale ? '+' : ''}{formatGold(gp, sp, cp)}
                   </p>
                 </div>
@@ -225,11 +229,7 @@ export function CharacterPage() {
         )
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 bg-ink border border-gold/40 rounded-lg px-4 py-3 text-parchment text-sm shadow-lg">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   );
 }
