@@ -15,9 +15,9 @@ import { DMCharacterPage } from './pages/DMCharacterPage.jsx';
 
 function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-[#1a1208]">
+    <div className="flex flex-col bg-[#1a1208]" style={{ height: '100dvh' }}>
       <Navbar />
-      <main>{children}</main>
+      <main className="flex-1 overflow-y-auto min-h-0">{children}</main>
     </div>
   );
 }

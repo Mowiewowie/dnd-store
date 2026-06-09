@@ -49,25 +49,29 @@ export function Navbar() {
     navigate('/');
   }
 
-  const hasDropdownActions = character || campaign;
+  const isDM = user?.role === 'dm';
+  const hasAccountActions = character || campaign;
 
   return (
-    <nav className="bg-ink border-b border-gold/30 px-6 py-3 flex items-center justify-between gap-4">
-      {/* Left: logo + campaign pill */}
-      <div className="flex items-center gap-3 min-w-0">
+    <nav className="bg-ink border-b border-gold/30 px-4 sm:px-6 py-3 flex items-center gap-3 shrink-0">
+
+      {/* ── Left (flex-1): logo + campaign pill ── */}
+      <div className="flex-1 flex items-center gap-2 sm:gap-3 min-w-0">
         <Link
           to="/"
-          className="text-gold font-bold text-lg tracking-wide shrink-0"
+          className="text-gold font-bold tracking-wide shrink-0 leading-none"
           style={{ fontFamily: 'Cinzel, Georgia, serif' }}
         >
-          ⚔ The Adventurer's Bazaar
+          <span className="hidden sm:inline text-lg">⚔ The Adventurer's Bazaar</span>
+          <span className="sm:hidden text-base">⚔ Bazaar</span>
         </Link>
+
         {campaign && (
-          <div className="hidden sm:flex items-center gap-1.5 border border-gold/20 rounded px-2 py-0.5 min-w-0">
-            <span className="text-parchment/40 text-xs truncate max-w-[8rem]">{campaign.name}</span>
+          <div className="hidden md:flex items-center gap-1 border border-gold/20 rounded px-2 py-0.5 min-w-0 max-w-[16rem]">
+            <span className="text-parchment/40 text-xs truncate">{campaign.name}</span>
             {campaign.join_code && (
               <>
-                <span className="text-gold/40 text-xs font-mono tracking-widest shrink-0">{campaign.join_code}</span>
+                <span className="text-gold/40 text-xs font-mono tracking-widest shrink-0 ml-1">{campaign.join_code}</span>
                 <CopyButton text={campaign.join_code} />
               </>
             )}
@@ -75,29 +79,23 @@ export function Navbar() {
         )}
       </div>
 
-      {/* Center: primary nav */}
-      <div className="flex items-center gap-5">
+      {/* ── Center: primary nav links (desktop only) ── */}
+      <div className="hidden md:flex items-center gap-6 shrink-0">
         {character && (
           <>
-            <Link to="/market" className="text-parchment/70 hover:text-parchment text-sm transition-colors">
-              Market
-            </Link>
-            <Link to="/character" className="text-parchment/70 hover:text-parchment text-sm transition-colors">
-              My Character
-            </Link>
+            <Link to="/market" className="text-parchment/70 hover:text-parchment text-sm transition-colors">Market</Link>
+            <Link to="/character" className="text-parchment/70 hover:text-parchment text-sm transition-colors">My Character</Link>
           </>
         )}
-        {user?.role === 'dm' && (
-          <Link to="/dm" className="text-ember hover:text-red-400 text-sm font-semibold transition-colors">
-            DM Panel
-          </Link>
+        {isDM && (
+          <Link to="/dm" className="text-ember hover:text-red-400 text-sm font-semibold transition-colors">DM Panel</Link>
         )}
       </div>
 
-      {/* Right: gold + user dropdown */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* ── Right (flex-1): gold badge + user dropdown ── */}
+      <div className="flex-1 flex items-center gap-3 justify-end">
         {character && (
-          <span className="text-gold text-sm font-semibold bg-stone/20 px-2.5 py-1 rounded border border-gold/30">
+          <span className="hidden sm:block text-gold text-sm font-semibold bg-stone/20 px-2.5 py-1 rounded border border-gold/30 whitespace-nowrap">
             🪙 {formatGold(character.gold_gp, character.gold_sp, character.gold_cp)}
           </span>
         )}
@@ -106,21 +104,62 @@ export function Navbar() {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(o => !o)}
-              className="flex items-center gap-1.5 text-parchment/70 hover:text-parchment text-sm transition-colors"
+              className="flex items-center gap-1.5 text-parchment/70 hover:text-parchment transition-colors"
             >
-              <span className="w-7 h-7 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-xs font-bold uppercase shrink-0">
+              <span className="w-8 h-8 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-sm font-bold uppercase shrink-0">
                 {user.username[0]}
               </span>
-              <span className="hidden sm:block max-w-[6rem] truncate">{user.username}</span>
-              <ChevronIcon open={dropdownOpen} />
+              <span className="hidden sm:block text-sm max-w-[6rem] truncate">{user.username}</span>
+              <span className="hidden sm:block"><ChevronIcon open={dropdownOpen} /></span>
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-48 bg-ink border border-gold/30 rounded-lg shadow-xl py-1 z-50">
-                <div className="px-4 py-2 border-b border-gold/10">
+              <div className="absolute right-0 top-full mt-1.5 w-52 bg-ink border border-gold/30 rounded-lg shadow-xl py-1 z-50">
+                {/* Signed-in-as header */}
+                <div className="px-4 py-2.5 border-b border-gold/10">
                   <p className="text-parchment/40 text-xs">Signed in as</p>
-                  <p className="text-parchment text-sm truncate">{user.username}</p>
+                  <p className="text-parchment text-sm font-medium truncate">{user.username}</p>
+                  {character && (
+                    <p className="text-gold text-xs mt-0.5 sm:hidden">
+                      🪙 {formatGold(character.gold_gp, character.gold_sp, character.gold_cp)}
+                    </p>
+                  )}
                 </div>
+
+                {/* Mobile nav links */}
+                {(character || isDM) && (
+                  <div className="md:hidden py-1 border-b border-gold/10">
+                    {character && (
+                      <>
+                        <Link
+                          to="/market"
+                          onClick={() => setDropdownOpen(false)}
+                          className="block px-4 py-2 text-parchment/70 hover:text-parchment hover:bg-stone/20 text-sm transition-colors"
+                        >
+                          Market
+                        </Link>
+                        <Link
+                          to="/character"
+                          onClick={() => setDropdownOpen(false)}
+                          className="block px-4 py-2 text-parchment/70 hover:text-parchment hover:bg-stone/20 text-sm transition-colors"
+                        >
+                          My Character
+                        </Link>
+                      </>
+                    )}
+                    {isDM && (
+                      <Link
+                        to="/dm"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block px-4 py-2 text-ember/80 hover:text-ember hover:bg-stone/20 text-sm font-semibold transition-colors"
+                      >
+                        DM Panel
+                      </Link>
+                    )}
+                  </div>
+                )}
+
+                {/* Account actions */}
                 {character && (
                   <button
                     onClick={handleSwitchCharacter}
@@ -137,7 +176,7 @@ export function Navbar() {
                     Switch Campaign
                   </button>
                 )}
-                {hasDropdownActions && <div className="border-t border-gold/10 my-1" />}
+                {hasAccountActions && <div className="border-t border-gold/10 my-1" />}
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2 text-ember/80 hover:text-ember hover:bg-stone/20 text-sm transition-colors"
