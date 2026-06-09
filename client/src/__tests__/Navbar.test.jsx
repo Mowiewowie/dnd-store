@@ -33,16 +33,26 @@ describe('Navbar — nav links', () => {
     expect(screen.queryByText('Market')).not.toBeInTheDocument();
   });
 
-  it('shows DM Panel link for DM users', async () => {
+  it('shows Markets and Characters links for DM users', async () => {
     server.use(http.get('/api/auth/me', () => HttpResponse.json(MOCK_DM)));
     renderWithProviders(<Navbar />);
-    await waitFor(() => expect(screen.getByText('DM Panel')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Markets')).toBeInTheDocument());
+    expect(screen.getByText('Characters')).toBeInTheDocument();
   });
 
-  it('does not show DM Panel link for player users', async () => {
+  it('does not show DM links for player users', async () => {
     renderWithProviders(<Navbar />);
     await waitFor(() => screen.getByText('My Character'));
-    expect(screen.queryByText('DM Panel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Markets')).not.toBeInTheDocument();
+    expect(screen.queryByText('Characters')).not.toBeInTheDocument();
+  });
+
+  it('shows (DM) badge in dropdown for DM users', async () => {
+    server.use(http.get('/api/auth/me', () => HttpResponse.json(MOCK_DM)));
+    renderWithProviders(<Navbar />);
+    await waitFor(() => screen.getByText('Markets'));
+    const dmBadges = screen.getAllByText('(DM)');
+    expect(dmBadges.length).toBeGreaterThan(0);
   });
 });
 

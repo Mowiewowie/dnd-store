@@ -100,14 +100,22 @@ export function Navbar() {
             </Link>
           </>
         )}
-        {/* DM Panel in center on sm+; falls into dropdown on tiny screens */}
+        {/* DM links — always visible, same priority as Market/My Character */}
         {isDM && (
-          <Link
-            to="/dm"
-            className="hidden sm:block text-ember hover:text-red-400 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap"
-          >
-            DM Panel
-          </Link>
+          <>
+            <Link
+              to="/dm"
+              className="text-parchment/70 hover:text-parchment text-xs sm:text-sm transition-colors whitespace-nowrap"
+            >
+              Markets
+            </Link>
+            <Link
+              to="/dm/characters"
+              className="text-parchment/70 hover:text-parchment text-xs sm:text-sm transition-colors whitespace-nowrap"
+            >
+              Characters
+            </Link>
+          </>
         )}
       </div>
 
@@ -132,8 +140,9 @@ export function Navbar() {
               <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-xs sm:text-sm font-bold uppercase shrink-0">
                 {user.username[0]}
               </span>
-              {/* Username + chevron only on large screens */}
-              <span className="hidden lg:block text-sm max-w-[6rem] truncate">{user.username}</span>
+              {/* Username + (DM) badge + chevron only on large screens */}
+              <span className={`hidden lg:block text-sm max-w-[6rem] truncate ${isDM ? 'text-ember' : ''}`}>{user.username}</span>
+              {isDM && <span className="hidden lg:block text-ember text-xs font-semibold shrink-0">(DM)</span>}
               <span className="hidden lg:block"><ChevronIcon open={dropdownOpen} /></span>
             </button>
 
@@ -143,7 +152,10 @@ export function Navbar() {
                 {/* Signed-in-as header */}
                 <div className="px-4 py-2.5 border-b border-gold/10">
                   <p className="text-parchment/40 text-xs">Signed in as</p>
-                  <p className="text-parchment text-sm font-medium truncate">{user.username}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className={`text-sm font-medium truncate ${isDM ? 'text-ember' : 'text-parchment'}`}>{user.username}</p>
+                    {isDM && <span className="text-ember text-xs font-semibold shrink-0">(DM)</span>}
+                  </div>
                 </div>
 
                 {/* Campaign info — only in dropdown below lg where pill is hidden */}
@@ -158,17 +170,6 @@ export function Navbar() {
                       </div>
                     )}
                   </div>
-                )}
-
-                {/* DM Panel — only in dropdown below sm where it's hidden from center nav */}
-                {isDM && (
-                  <Link
-                    to="/dm"
-                    onClick={() => setDropdownOpen(false)}
-                    className="sm:hidden block px-4 py-2 text-ember/80 hover:text-ember hover:bg-stone/20 text-sm font-semibold transition-colors"
-                  >
-                    DM Panel
-                  </Link>
                 )}
 
                 {/* Account actions */}

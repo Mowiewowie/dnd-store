@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { api } from '../utils/api.js';
 
 export function DMDashboardPage() {
-  const navigate = useNavigate();
-  const [stores, setStores] = useState([]);
+const [stores, setStores] = useState([]);
   const [settings, setSettings] = useState({ price_multiplier: '1.0' });
   const [newStore, setNewStore] = useState({ name: '', description: '', location: '' });
   const [multiplier, setMultiplier] = useState('');
@@ -59,15 +58,7 @@ export function DMDashboardPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl text-gold" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>DM Panel</h1>
-        <button
-          onClick={() => navigate('/dm/characters')}
-          className="border border-gold/40 hover:border-gold text-parchment/60 hover:text-parchment text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          View Characters
-        </button>
-      </div>
+      <h1 className="text-3xl text-gold mb-8" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>DM Panel</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
