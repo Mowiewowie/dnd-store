@@ -17,7 +17,7 @@ function Layout({ children }) {
   return (
     <div className="flex flex-col" style={{ height: '100dvh' }}>
       <Navbar />
-      <main className="flex-1 overflow-y-auto min-h-0">{children}</main>
+      <main className="flex-1 overflow-y-auto min-h-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>{children}</main>
     </div>
   );
 }

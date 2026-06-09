@@ -26,6 +26,12 @@ describe('StoreDetailPage — Buy tab', () => {
     expect(screen.getByText('Ye Olde Shoppe')).toBeInTheDocument();
   });
 
+  it('shows a back button to Market', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getByText('Ye Olde Shoppe'));
+    expect(screen.getByRole('button', { name: /← Market/i })).toBeInTheDocument();
+  });
+
   it('shows item price', async () => {
     renderWithProviders(<StoreDetailPage />);
     await waitFor(() => expect(screen.getByText('15 GP')).toBeInTheDocument());

@@ -62,6 +62,12 @@ describe('CharacterPage', () => {
     expect(screen.getByRole('button', { name: 'Log Change' })).toBeInTheDocument();
   });
 
+  it('gold adjustment shows error when amount is empty', async () => {
+    renderWithProviders(<CharacterPage />);
+    await userEvent.click(screen.getByRole('button', { name: 'Log Change' }));
+    expect(screen.getByText(/Enter a positive amount/i)).toBeInTheDocument();
+  });
+
   it('submitting gold adjustment calls PATCH and updates displayed gold', async () => {
     renderWithProviders(<CharacterPage />);
     const amountInput = screen.getByPlaceholderText(/Amount/i);

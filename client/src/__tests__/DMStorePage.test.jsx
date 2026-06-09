@@ -197,4 +197,35 @@ describe('DMStorePage — add listing form', () => {
     expect(screen.getByPlaceholderText('Item name *')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to Store' })).toBeInTheDocument();
   });
+
+  it('add form qty stepper defaults to 1 and has − and + buttons', async () => {
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+    // Add form QuantityStepper is first in DOM before listing steppers
+    expect(screen.getAllByRole('button', { name: '+' }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('button', { name: '−' }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByDisplayValue('1')).toBeInTheDocument();
+  });
+
+  it('add form qty + button increments the quantity', async () => {
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+    // First + in DOM is the add form stepper (before listing card steppers)
+    await userEvent.click(screen.getAllByRole('button', { name: '+' })[0]);
+    expect(screen.getByDisplayValue('2')).toBeInTheDocument();
+  });
+
+  it('add form qty − button does not go below 1', async () => {
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+    // First − in DOM is the add form stepper
+    await userEvent.click(screen.getAllByRole('button', { name: '−' })[0]);
+    expect(screen.getByDisplayValue('1')).toBeInTheDocument();
+  });
+
+  it('shows a back button to Markets', async () => {
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+    expect(screen.getByRole('button', { name: /Markets/i })).toBeInTheDocument();
+  });
 });
