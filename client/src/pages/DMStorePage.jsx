@@ -2,20 +2,21 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { fromCP, formatGold } from '../utils/gold.js';
+import { Toast } from '../components/Toast.jsx';
+import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
 
 const TEMPERAMENT_LABELS = [
-  { value: -2,   label: 'Generous',   color: 'text-emerald-400' },
-  { value: -1,   label: 'Charitable', color: 'text-emerald-400/70' },
+  { value: -2,   label: 'Generous',   color: 'text-gold-light' },
+  { value: -1,   label: 'Charitable', color: 'text-gold/70' },
   { value:  0,   label: 'Impartial',  color: 'text-parchment/60' },
-  { value:  1,   label: 'Shrewd',     color: 'text-ember/70' },
-  { value:  2,   label: 'Cutthroat',  color: 'text-ember' },
+  { value:  1,   label: 'Shrewd',     color: 'text-ember-light/80' },
+  { value:  2,   label: 'Cutthroat',  color: 'text-ember-light' },
 ];
 
 function getTemperamentLabel(bias) {
-  const closest = TEMPERAMENT_LABELS.reduce((a, b) =>
+  return TEMPERAMENT_LABELS.reduce((a, b) =>
     Math.abs(b.value - bias) < Math.abs(a.value - bias) ? b : a
   );
-  return closest;
 }
 
 export function DMStorePage() {
@@ -57,7 +58,6 @@ export function DMStorePage() {
     }, 400);
   }
 
-  // Close search dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -89,7 +89,6 @@ export function DMStorePage() {
       custom_price_cp: String(item.srd_default_cp || ''),
       quantity: 1,
     });
-    // All items now have a suggested price (SRD for equipment, DMG estimate for magic items)
     setPriceOverride(false);
     setSearch('');
     setSearchResults([]);
@@ -155,8 +154,10 @@ export function DMStorePage() {
     commitQty(listingId, isNaN(parsed) ? 0 : parsed);
   }
 
-  if (loading) return <div className="flex items-center justify-center py-20 text-parchment/50">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-20 text-parchment/40">Loading...</div>;
   if (!store) return null;
+
+  const fillPct = ((bias + 2) / 4) * 100;
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -166,16 +167,17 @@ export function DMStorePage() {
       >
         ← Markets
       </button>
-      <h1 className="text-3xl text-gold mb-8" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>{store.name} — Listings</h1>
+      <h1 className="fantasy-heading text-3xl mb-8">{store.name} — Listings</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Add Item column */}
         <div>
-          <h2 className="text-xl text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Add Item</h2>
-          <form onSubmit={handleAddListing} className="bg-ink border border-gold/30 rounded-lg p-4 space-y-3">
-            {/* Merchant's Temperament — shifts the bell curve peak for magic item price suggestions */}
+          <h2 className="fantasy-heading text-xl mb-4">Add Item</h2>
+          <form onSubmit={handleAddListing} className="card-fancy p-4 space-y-3">
+            {/* Merchant's Temperament */}
             <div className="pb-3 border-b border-gold/10">
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-parchment/50 text-xs">Merchant's Temperament</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-parchment/50 text-xs uppercase tracking-wider">Merchant's Temperament</label>
                 <span className={`text-xs font-semibold ${getTemperamentLabel(bias).color}`}>
                   {getTemperamentLabel(bias).label}
                 </span>
@@ -189,9 +191,9 @@ export function DMStorePage() {
                 onChange={handleBiasChange}
                 aria-label="Merchant's Temperament"
                 className="w-full h-1 rounded appearance-none cursor-pointer accent-gold"
-                style={{ background: `linear-gradient(to right, #10b981 0%, #d4a94a ${((bias + 2) / 4) * 100}%, #4a4030 ${((bias + 2) / 4) * 100}%, #4a4030 100%)` }}
+                style={{ background: `linear-gradient(to right, #c9a84c 0%, #c9a84c ${fillPct}%, #2c1810 ${fillPct}%, #2c1810 100%)` }}
               />
-              <div className="flex justify-between text-parchment/25 text-xs mt-0.5 select-none">
+              <div className="flex justify-between text-parchment/25 text-xs mt-1 select-none">
                 <span>Generous</span>
                 <span>Cutthroat</span>
               </div>
@@ -199,43 +201,46 @@ export function DMStorePage() {
                 Affects suggested prices for magic items with no fixed SRD cost.
               </p>
             </div>
+
+            {/* SRD search */}
             <div className="relative" ref={searchRef}>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search D&D items (e.g. longsword)..."
-                className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+                className="input-field text-sm"
               />
               {searchResults.length > 0 && (
-                <div className="absolute z-10 w-full bg-ink border border-gold/30 rounded mt-1 max-h-48 overflow-y-auto shadow-xl">
-                  {searchResults.map(item => (
+                <div className="absolute z-10 w-full bg-ink border border-gold/30 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-xl">
+                  {searchResults.map((item, i) => (
                     <button
                       key={item.index}
                       type="button"
                       onClick={() => selectSRDItem(item)}
-                      className="w-full text-left px-3 py-2 text-parchment text-sm hover:bg-stone/20 flex justify-between"
+                      className={`w-full text-left px-3 py-2 text-parchment text-sm hover:bg-stone/20 flex justify-between items-center transition-colors ${i > 0 ? 'border-t border-gold/10' : ''}`}
                     >
                       <span>{item.name}</span>
-                      <span className="text-gold text-xs">{item.srd_default_cp ? formatGold(...Object.values(fromCP(item.srd_default_cp))) : '—'}</span>
+                      <span className="text-gold/70 text-xs ml-2 shrink-0">{item.srd_default_cp ? formatGold(...Object.values(fromCP(item.srd_default_cp))) : '—'}</span>
                     </button>
                   ))}
                 </div>
               )}
               {searching && <p className="text-parchment/40 text-xs mt-1">Searching...</p>}
             </div>
+
             <input
               value={form.item_name}
               onChange={e => setForm(p => ({ ...p, item_name: e.target.value }))}
               placeholder="Item name *"
               required
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm"
             />
             <textarea
               value={form.item_description}
               onChange={e => setForm(p => ({ ...p, item_description: e.target.value }))}
               placeholder="Description (optional)"
               rows={2}
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50 resize-none"
+              className="input-field text-sm resize-none"
             />
             <div className="flex gap-3">
               <div className="flex-1">
@@ -257,12 +262,12 @@ export function DMStorePage() {
                         onChange={e => setPriceOverride(e.target.checked)}
                         className="accent-gold"
                       />
-                      Override price
+                      Override
                     </label>
                   )}
                 </div>
                 {selected && !priceOverride ? (
-                  <div className="w-full bg-stone/10 border border-gold/10 rounded px-3 py-2 text-parchment/60 text-sm">
+                  <div className="input-field text-sm text-parchment/50 cursor-default">
                     {form.custom_price_cp
                       ? formatGold(...Object.values(fromCP(parseInt(form.custom_price_cp) || 0)))
                       : '—'}
@@ -276,10 +281,10 @@ export function DMStorePage() {
                       onChange={e => setForm(p => ({ ...p, custom_price_cp: e.target.value }))}
                       placeholder="0 cp"
                       required
-                      className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+                      className="input-field text-sm"
                     />
                     {form.custom_price_cp && (
-                      <p className="text-gold text-xs mt-1">{formatGold(...Object.values(fromCP(parseInt(form.custom_price_cp) || 0)))}</p>
+                      <p className="text-gold/70 text-xs mt-1">{formatGold(...Object.values(fromCP(parseInt(form.custom_price_cp) || 0)))}</p>
                     )}
                   </>
                 )}
@@ -291,36 +296,42 @@ export function DMStorePage() {
                   min="1"
                   value={form.quantity}
                   onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
-                  className="w-20 bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+                  className="input-field text-sm w-20"
                 />
               </div>
             </div>
-            <button type="submit" className="w-full bg-gold/80 hover:bg-gold text-ink font-bold py-2 rounded text-sm transition-colors">
+            <button type="submit" className="btn btn-primary w-full py-2 text-sm">
               Add to Store
             </button>
           </form>
         </div>
 
+        {/* Listings column */}
         <div>
-          <h2 className="text-xl text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Current Listings ({store.listings.length})</h2>
+          <h2 className="fantasy-heading text-xl mb-4">Current Listings ({store.listings.length})</h2>
           {store.listings.length === 0 ? (
             <p className="text-parchment/40 text-sm">No items listed yet.</p>
           ) : (
             <div className="space-y-2">
-              {store.listings.map(listing => {
+              {store.listings.map((listing, i) => {
                 const price = listing.effective_price_cp ?? listing.custom_price_cp ?? 0;
                 const { gp, sp, cp } = fromCP(price);
                 const currentQty = listing.quantity;
                 const inputVal = qtyInputs[listing.id] ?? String(currentQty);
                 return (
-                  <div key={listing.id} className="bg-ink border border-gold/20 rounded p-3">
+                  <div
+                    key={listing.id}
+                    className={`card p-3 ${i % 2 === 1 ? 'bg-stone/5' : ''}`}
+                  >
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-parchment text-sm font-semibold truncate">{listing.item_name}</p>
-                        <p className="text-parchment/40 text-xs mt-0.5">{formatGold(gp, sp, cp)}</p>
+                        <p className="text-gold/60 text-xs mt-0.5">{formatGold(gp, sp, cp)}</p>
+                        {currentQty === 0 && (
+                          <p className="text-ember-light/60 text-xs mt-0.5 italic">Out of stock</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        {/* Quantity stepper */}
                         <button
                           onClick={() => handleQtyStep(listing.id, currentQty, -1)}
                           className="w-6 h-6 flex items-center justify-center rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
@@ -342,15 +353,12 @@ export function DMStorePage() {
                         >+</button>
                         <button
                           onClick={() => handleDeleteListing(listing.id)}
-                          className="ml-1 text-ember hover:text-red-400 text-xs transition-colors px-1"
+                          className="ml-1 text-ember/60 hover:text-ember-light text-xs transition-colors px-1"
                         >
                           Remove
                         </button>
                       </div>
                     </div>
-                    {currentQty === 0 && (
-                      <p className="text-parchment/30 text-xs mt-1 italic">Out of stock</p>
-                    )}
                   </div>
                 );
               })}
@@ -359,11 +367,7 @@ export function DMStorePage() {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 bg-ink border border-gold/40 rounded-lg px-4 py-3 text-parchment text-sm shadow-lg">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   );
 }

@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../utils/api.js';
+import { StatusBadge } from '../components/StatusBadge.jsx';
+import { Toast } from '../components/Toast.jsx';
+import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
 
 export function DMDashboardPage() {
-const [stores, setStores] = useState([]);
+  const [stores, setStores] = useState([]);
   const [settings, setSettings] = useState({ price_multiplier: '1.0' });
   const [newStore, setNewStore] = useState({ name: '', description: '', location: '' });
   const [multiplier, setMultiplier] = useState('');
@@ -54,90 +57,94 @@ const [stores, setStores] = useState([]);
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center py-20 text-parchment/50">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-20 text-parchment/40">Loading...</div>;
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl text-gold mb-8" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Markets</h1>
+      <h1 className="fantasy-heading text-3xl mb-8">Markets</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Stores column */}
         <div>
-          <h2 className="text-xl text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Stores</h2>
+          <h2 className="fantasy-heading text-xl mb-4">Stores</h2>
 
-          <div className="space-y-3 mb-6">
+          <div className="space-y-2 mb-6">
             {stores.length === 0 && <p className="text-parchment/40 text-sm">No stores yet.</p>}
             {stores.map(store => (
-              <div key={store.id} className="bg-ink border border-gold/20 rounded-lg p-3 flex justify-between items-center">
-                <div>
-                  <Link to={`/dm/stores/${store.id}`} className="text-parchment hover:text-gold font-semibold transition-colors">
+              <div key={store.id} className="card p-3 flex justify-between items-center gap-3">
+                <div className="min-w-0">
+                  <Link to={`/dm/stores/${store.id}`} className="text-parchment hover:text-gold font-semibold transition-colors text-sm">
                     {store.name}
                   </Link>
-                  {store.location && <p className="text-parchment/40 text-xs">📍 {store.location}</p>}
+                  {store.location && <p className="text-parchment/35 text-xs mt-0.5">{store.location}</p>}
                 </div>
                 <button
                   onClick={() => handleToggleStore(store)}
-                  className={`text-xs px-3 py-1 rounded border transition-colors ${store.is_open ? 'border-green-700 text-green-400 hover:bg-green-900/20' : 'border-red-800 text-red-400 hover:bg-red-900/20'}`}
+                  className="shrink-0 transition-opacity hover:opacity-80"
+                  title={store.is_open ? 'Click to close' : 'Click to open'}
                 >
-                  {store.is_open ? 'Open' : 'Closed'}
+                  <StatusBadge isOpen={store.is_open} />
                 </button>
               </div>
             ))}
           </div>
 
-          <form onSubmit={handleCreateStore} className="bg-ink border border-gold/30 rounded-lg p-4 space-y-3">
-            <h3 className="text-parchment font-semibold">Create Store</h3>
+          <OrnamentDivider />
+
+          <form onSubmit={handleCreateStore} className="card-fancy p-4 space-y-3">
+            <h3 className="text-parchment/70 text-xs uppercase tracking-wider">Create Store</h3>
             <input
               value={newStore.name}
               onChange={e => setNewStore(p => ({ ...p, name: e.target.value }))}
               placeholder="Store name *"
               required
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm"
             />
             <input
               value={newStore.location}
               onChange={e => setNewStore(p => ({ ...p, location: e.target.value }))}
               placeholder="Location (optional)"
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm"
             />
             <input
               value={newStore.description}
               onChange={e => setNewStore(p => ({ ...p, description: e.target.value }))}
               placeholder="Description (optional)"
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm"
             />
-            <button type="submit" className="w-full bg-gold/80 hover:bg-gold text-ink font-bold py-2 rounded text-sm transition-colors">
+            <button type="submit" className="btn btn-primary w-full py-2 text-sm">
               Create Store
             </button>
           </form>
         </div>
 
+        {/* Settings column */}
         <div>
-          <h2 className="text-xl text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Settings</h2>
-          <form onSubmit={handleSaveMultiplier} className="bg-ink border border-gold/30 rounded-lg p-4 space-y-3">
+          <h2 className="fantasy-heading text-xl mb-4">Settings</h2>
+          <form onSubmit={handleSaveMultiplier} className="card-fancy p-4 space-y-3">
             <div>
-              <label className="block text-parchment/70 text-sm mb-1">Global Price Multiplier</label>
-              <p className="text-parchment/40 text-xs mb-2">Scales all SRD-default prices. Custom prices are unaffected.</p>
+              <label className="block text-parchment/60 text-xs uppercase tracking-wider mb-1.5">
+                Global Price Multiplier
+              </label>
+              <p className="text-parchment/35 text-xs mb-3">Scales all SRD-default prices. Custom prices are unaffected.</p>
               <input
                 type="number"
                 step="0.1"
                 min="0.1"
                 value={multiplier}
                 onChange={e => setMultiplier(e.target.value)}
-                className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment focus:outline-none focus:border-gold/50"
+                className="input-field"
               />
             </div>
-            <button type="submit" className="w-full bg-gold/80 hover:bg-gold text-ink font-bold py-2 rounded text-sm transition-colors">
+            <OrnamentDivider className="my-1" />
+            <button type="submit" className="btn btn-primary w-full py-2 text-sm">
               Save
             </button>
           </form>
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 bg-ink border border-gold/40 rounded-lg px-4 py-3 text-parchment text-sm shadow-lg">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   );
 }

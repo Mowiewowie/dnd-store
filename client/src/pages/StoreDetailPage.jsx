@@ -3,24 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fromCP, formatGold } from '../utils/gold.js';
+import { Toast } from '../components/Toast.jsx';
+import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
 
 function ListingCard({ listing, onBuy }) {
   const { gp, sp, cp } = fromCP(listing.effective_price_cp || 0);
   return (
-    <div className="bg-stone/10 border border-gold/20 rounded-lg p-4 flex justify-between items-center gap-4">
+    <div className="card p-4 flex justify-between items-center gap-4">
       <div className="flex-1 min-w-0">
         <p className="text-parchment font-semibold truncate">{listing.item_name}</p>
         {listing.item_description && (
           <p className="text-parchment/50 text-sm mt-1 line-clamp-2">{listing.item_description}</p>
         )}
-        <p className="text-parchment/40 text-xs mt-1">Qty: {listing.quantity}</p>
+        <p className="text-parchment/35 text-xs mt-1">Qty: {listing.quantity}</p>
       </div>
       <div className="text-right shrink-0">
         <p className="text-gold font-bold">{formatGold(gp, sp, cp)}</p>
         <button
           onClick={() => onBuy(listing)}
           disabled={listing.quantity < 1}
-          className="mt-2 bg-gold/80 hover:bg-gold text-ink text-sm font-bold px-4 py-1.5 rounded transition-colors disabled:opacity-40"
+          className="btn btn-primary mt-2 px-4 py-1.5 text-sm"
         >
           Buy
         </button>
@@ -37,32 +39,35 @@ function BuyModal({ listing, character, onConfirm, onCancel }) {
   const afterBreakdown = fromCP(Math.max(0, afterTotal));
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-      <div className="bg-ink border border-gold/40 rounded-lg p-6 w-full max-w-sm shadow-2xl">
-        <h2 className="text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Confirm Purchase</h2>
-        <p className="text-parchment mb-2"><span className="text-parchment/50">Item:</span> {listing.item_name}</p>
-        <p className="text-parchment mb-4"><span className="text-parchment/50">Price:</span> <span className="text-gold font-bold">{formatGold(gp, sp, cp)}</span></p>
-        <div className="border border-gold/20 rounded p-3 mb-4 text-sm">
-          <p className="text-parchment/50 mb-1">After purchase:</p>
-          <p className={canAfford ? 'text-green-400' : 'text-red-400'}>
-            {formatGold(afterBreakdown.gp, afterBreakdown.sp, afterBreakdown.cp)}
-          </p>
-          {!canAfford && <p className="text-red-400 text-xs mt-1">Not enough gold!</p>}
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={onConfirm}
-            disabled={!canAfford}
-            className="flex-1 bg-gold/80 hover:bg-gold text-ink font-bold py-2 rounded transition-colors disabled:opacity-40"
-          >
-            Buy
-          </button>
-          <button
-            onClick={onCancel}
-            className="flex-1 border border-gold/20 text-parchment/60 hover:text-parchment py-2 rounded transition-colors"
-          >
-            Cancel
-          </button>
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+      <div className="bg-base border border-gold/20 rounded-lg p-1 w-full max-w-sm shadow-2xl">
+        <div className="card-fancy p-6">
+          <h2 className="fantasy-heading text-xl mb-1">Confirm Purchase</h2>
+          <OrnamentDivider className="my-3" />
+          <p className="text-parchment mb-2"><span className="text-parchment/40">Item:</span> {listing.item_name}</p>
+          <p className="text-parchment mb-4"><span className="text-parchment/40">Price:</span> <span className="text-gold font-bold">{formatGold(gp, sp, cp)}</span></p>
+          <div className="border border-gold/15 rounded-lg p-3 mb-4 text-sm bg-stone/10">
+            <p className="text-parchment/40 mb-1 text-xs uppercase tracking-wider">After purchase</p>
+            <p className={canAfford ? 'text-gold-light' : 'text-ember-light'}>
+              {formatGold(afterBreakdown.gp, afterBreakdown.sp, afterBreakdown.cp)}
+            </p>
+            {!canAfford && <p className="text-ember-light text-xs mt-1">Not enough gold!</p>}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onConfirm}
+              disabled={!canAfford}
+              className="btn btn-primary flex-1 py-2"
+            >
+              Buy
+            </button>
+            <button
+              onClick={onCancel}
+              className="btn btn-secondary flex-1 py-2"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -72,27 +77,30 @@ function BuyModal({ listing, character, onConfirm, onCancel }) {
 function SellModal({ item, offerCP, onConfirm, onCancel }) {
   const { gp, sp, cp } = fromCP(offerCP);
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-      <div className="bg-ink border border-gold/40 rounded-lg p-6 w-full max-w-sm shadow-2xl">
-        <h2 className="text-gold mb-4" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Confirm Sale</h2>
-        <p className="text-parchment mb-2"><span className="text-parchment/50">Item:</span> {item.item_name}</p>
-        <p className="text-parchment mb-4">
-          <span className="text-parchment/50">Offer:</span>{' '}
-          <span className="text-gold font-bold">{formatGold(gp, sp, cp)}</span>
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onConfirm}
-            className="flex-1 bg-gold/80 hover:bg-gold text-ink font-bold py-2 rounded transition-colors"
-          >
-            Sell
-          </button>
-          <button
-            onClick={onCancel}
-            className="flex-1 border border-gold/20 text-parchment/60 hover:text-parchment py-2 rounded transition-colors"
-          >
-            Cancel
-          </button>
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+      <div className="bg-base border border-gold/20 rounded-lg p-1 w-full max-w-sm shadow-2xl">
+        <div className="card-fancy p-6">
+          <h2 className="fantasy-heading text-xl mb-1">Confirm Sale</h2>
+          <OrnamentDivider className="my-3" />
+          <p className="text-parchment mb-2"><span className="text-parchment/40">Item:</span> {item.item_name}</p>
+          <p className="text-parchment mb-4">
+            <span className="text-parchment/40">Offer:</span>{' '}
+            <span className="text-gold font-bold">{formatGold(gp, sp, cp)}</span>
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onConfirm}
+              className="btn btn-primary flex-1 py-2"
+            >
+              Sell
+            </button>
+            <button
+              onClick={onCancel}
+              className="btn btn-secondary flex-1 py-2"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -149,7 +157,6 @@ export function StoreDetailPage() {
           l.id === selectedListing.id ? { ...l, quantity: l.quantity - 1 } : l
         ),
       }));
-      // Always refresh inventory so the Sell tab stays current
       api.get(`/characters/${character.id}/inventory`).then(setInventory).catch(() => {});
       showToast(`Purchased ${selectedListing.item_name}!`);
     } catch (err) {
@@ -189,7 +196,7 @@ export function StoreDetailPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20 text-parchment/50">Loading...</div>;
+    return <div className="flex items-center justify-center py-20 text-parchment/40">Loading...</div>;
   }
   if (!store) return null;
 
@@ -208,25 +215,26 @@ export function StoreDetailPage() {
       </button>
 
       <div className="mb-6">
-        <h1 className="text-3xl text-gold" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>{store.name}</h1>
-        {store.location && <p className="text-parchment/40 text-sm mt-1">📍 {store.location}</p>}
-        {store.description && <p className="text-parchment/60 text-sm mt-2">{store.description}</p>}
+        <h1 className="fantasy-heading text-3xl">{store.name}</h1>
+        {store.location && <p className="text-parchment/40 text-sm mt-1">{store.location}</p>}
+        {store.description && <p className="text-parchment/50 text-sm mt-2">{store.description}</p>}
       </div>
 
-      {/* Buy / Sell tabs */}
-      <div className="flex gap-1 mb-4 bg-stone/20 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => setTab('buy')}
-          className={`px-5 py-1.5 rounded text-sm font-semibold transition-colors ${tab === 'buy' ? 'bg-gold text-ink' : 'text-parchment/50 hover:text-parchment'}`}
-        >
-          Buy
-        </button>
-        <button
-          onClick={() => setTab('sell')}
-          className={`px-5 py-1.5 rounded text-sm font-semibold transition-colors ${tab === 'sell' ? 'bg-gold text-ink' : 'text-parchment/50 hover:text-parchment'}`}
-        >
-          Sell
-        </button>
+      {/* Buy / Sell tabs — bottom border indicator */}
+      <div className="flex border-b border-gold/20 mb-6">
+        {[{ key: 'buy', label: 'Buy' }, { key: 'sell', label: 'Sell' }].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`px-6 pb-2 text-sm font-semibold transition-colors ${
+              tab === key
+                ? 'text-gold border-b-2 border-gold -mb-px'
+                : 'text-parchment/40 hover:text-parchment/70'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {tab === 'buy' && (
@@ -236,7 +244,7 @@ export function StoreDetailPage() {
               value={filter}
               onChange={e => setFilter(e.target.value)}
               placeholder="Search items..."
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm mb-4 focus:outline-none focus:border-gold/50"
+              className="input-field text-sm mb-4"
             />
           )}
           {filtered.length === 0 ? (
@@ -255,7 +263,7 @@ export function StoreDetailPage() {
 
       {tab === 'sell' && (
         <>
-          <p className="text-parchment/40 text-xs mb-3">
+          <p className="text-parchment/40 text-xs mb-4">
             This store buys at{' '}
             <span className="text-gold">{Math.round((0.75 - (store.price_bias ?? 0) / 8) * 100)}%</span>
             {' '}of item value.
@@ -270,20 +278,20 @@ export function StoreDetailPage() {
                 const offerCP = getOfferCP(item);
                 const { gp, sp, cp } = fromCP(offerCP);
                 return (
-                  <div key={item.id} className="bg-stone/10 border border-gold/20 rounded-lg p-4 flex justify-between items-center gap-4">
+                  <div key={item.id} className="card p-4 flex justify-between items-center gap-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-parchment font-semibold truncate">{item.item_name}</p>
                       {item.item_description && (
                         <p className="text-parchment/50 text-sm mt-1 line-clamp-2">{item.item_description}</p>
                       )}
-                      <p className="text-parchment/40 text-xs mt-1">Qty: {item.quantity}</p>
+                      <p className="text-parchment/35 text-xs mt-1">Qty: {item.quantity}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-gold font-bold">{offerCP > 0 ? formatGold(gp, sp, cp) : '—'}</p>
                       <button
                         onClick={() => setSellTarget(item)}
                         disabled={offerCP === 0}
-                        className="mt-2 border border-gold/50 hover:bg-gold/10 text-gold text-sm font-bold px-4 py-1.5 rounded transition-colors disabled:opacity-40"
+                        className="btn btn-secondary mt-2 px-4 py-1.5 text-sm"
                       >
                         Sell
                       </button>
@@ -314,11 +322,7 @@ export function StoreDetailPage() {
         />
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 bg-ink border border-gold/40 rounded-lg px-4 py-3 text-parchment text-sm shadow-lg">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   );
 }

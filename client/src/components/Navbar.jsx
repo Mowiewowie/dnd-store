@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatGold } from '../utils/gold.js';
 import { CopyButton } from './CopyButton.jsx';
@@ -14,6 +14,13 @@ function ChevronIcon({ open }) {
     </svg>
   );
 }
+
+const navLinkClass = ({ isActive }) =>
+  `text-xs sm:text-sm transition-colors whitespace-nowrap pb-0.5 ${
+    isActive
+      ? 'text-gold border-b border-gold/60'
+      : 'text-parchment/60 hover:text-parchment border-b border-transparent'
+  }`;
 
 export function Navbar() {
   const { user, campaign, character, logout, clearCampaign, clearCharacter } = useAuth();
@@ -55,22 +62,23 @@ export function Navbar() {
   return (
     <nav className="bg-ink border-b border-gold/30 px-4 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 shrink-0">
 
-      {/* ── Left (shrink-0): logo + campaign pill (lg+ only) ── */}
+      {/* ── Left: logo + campaign pill ── */}
       <div className="flex items-center gap-2 shrink-0">
         <Link
           to="/"
-          className="text-gold font-bold tracking-wide shrink-0 leading-none"
-          style={{ fontFamily: 'Cinzel, Georgia, serif' }}
+          className="font-bold tracking-wide shrink-0 leading-none"
+          style={{
+            fontFamily: 'Cinzel, Georgia, serif',
+            color: '#c9a84c',
+            textShadow: '0 0 20px rgba(201,168,76,0.3)',
+          }}
         >
-          {/* Full name on sm+, compact on tiny screens */}
           <span className="hidden sm:inline text-lg">⚔ The Adventurer's Bazaar</span>
           <span className="sm:hidden text-base">⚔ Bazaar</span>
         </Link>
 
-        {/* Campaign pill — only render when there's room (lg+).
-            On smaller screens the join code is accessible via the dropdown. */}
         {campaign && (
-          <div className="hidden lg:flex items-center gap-1 border border-gold/20 rounded px-2 py-0.5 min-w-0">
+          <div className="hidden lg:flex items-center gap-1 border border-gold/20 rounded px-2 py-0.5 min-w-0 bg-stone/10">
             <span className="text-parchment/40 text-xs truncate max-w-[8rem]">{campaign.name}</span>
             {campaign.join_code && (
               <>
@@ -82,49 +90,27 @@ export function Navbar() {
         )}
       </div>
 
-      {/* ── Center (flex-1): primary nav — Market + My Character always visible ── */}
+      {/* ── Center: primary nav ── */}
       <div className="flex-1 flex items-center justify-center gap-4 sm:gap-6">
         {character && (
           <>
-            <Link
-              to="/market"
-              className="text-parchment/70 hover:text-parchment text-xs sm:text-sm transition-colors whitespace-nowrap"
-            >
-              Market
-            </Link>
-            <Link
-              to="/character"
-              className="text-parchment/70 hover:text-parchment text-xs sm:text-sm transition-colors whitespace-nowrap"
-            >
-              My Character
-            </Link>
+            <NavLink to="/market" className={navLinkClass}>Market</NavLink>
+            <NavLink to="/character" className={navLinkClass}>My Character</NavLink>
           </>
         )}
-        {/* DM links — always visible, same priority as Market/My Character */}
         {isDM && (
           <>
-            <Link
-              to="/dm"
-              className="text-parchment/70 hover:text-parchment text-xs sm:text-sm transition-colors whitespace-nowrap"
-            >
-              Markets
-            </Link>
-            <Link
-              to="/dm/characters"
-              className="text-parchment/70 hover:text-parchment text-xs sm:text-sm transition-colors whitespace-nowrap"
-            >
-              Characters
-            </Link>
+            <NavLink to="/dm" end className={navLinkClass}>Markets</NavLink>
+            <NavLink to="/dm/characters" className={navLinkClass}>Characters</NavLink>
           </>
         )}
       </div>
 
-      {/* ── Right (shrink-0): gold always visible + user dropdown ── */}
+      {/* ── Right: gold + user dropdown ── */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
 
-        {/* Gold — always visible. Show GP-only on mobile to save space. */}
         {character && (
-          <span className="text-gold text-xs sm:text-sm font-semibold bg-stone/20 px-1.5 sm:px-2.5 py-1 rounded border border-gold/30 whitespace-nowrap">
+          <span className="text-gold text-xs sm:text-sm font-semibold bg-gold/10 px-1.5 sm:px-2.5 py-1 rounded border border-gold/25 whitespace-nowrap">
             🪙{' '}
             <span className="sm:hidden">{character.gold_gp} GP</span>
             <span className="hidden sm:inline">{formatGold(character.gold_gp, character.gold_sp, character.gold_cp)}</span>
@@ -137,31 +123,29 @@ export function Navbar() {
               onClick={() => setDropdownOpen(o => !o)}
               className="flex items-center gap-1.5 text-parchment/70 hover:text-parchment transition-colors"
             >
-              <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-xs sm:text-sm font-bold uppercase shrink-0">
+              <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center text-gold text-xs sm:text-sm font-bold uppercase shrink-0"
+                    style={{ fontFamily: 'Cinzel, Georgia, serif' }}>
                 {user.username[0]}
               </span>
-              {/* Username + (DM) badge + chevron only on large screens */}
               <span className={`hidden lg:block text-sm max-w-[6rem] truncate ${isDM ? 'text-ember' : ''}`}>{user.username}</span>
               {isDM && <span className="hidden lg:block text-ember text-xs font-semibold shrink-0">(DM)</span>}
               <span className="hidden lg:block"><ChevronIcon open={dropdownOpen} /></span>
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-52 bg-ink border border-gold/30 rounded-lg shadow-xl py-1 z-50">
+              <div className="absolute right-0 top-full mt-1.5 w-52 bg-ink border border-gold/30 rounded-lg shadow-2xl py-1 z-50">
 
-                {/* Signed-in-as header */}
                 <div className="px-4 py-2.5 border-b border-gold/10">
-                  <p className="text-parchment/40 text-xs">Signed in as</p>
+                  <p className="text-parchment/35 text-xs">Signed in as</p>
                   <div className="flex items-center gap-1.5">
                     <p className={`text-sm font-medium truncate ${isDM ? 'text-ember' : 'text-parchment'}`}>{user.username}</p>
                     {isDM && <span className="text-ember text-xs font-semibold shrink-0">(DM)</span>}
                   </div>
                 </div>
 
-                {/* Campaign info — only in dropdown below lg where pill is hidden */}
                 {campaign && (
                   <div className="lg:hidden px-4 py-2.5 border-b border-gold/10">
-                    <p className="text-parchment/40 text-xs mb-1">Campaign</p>
+                    <p className="text-parchment/35 text-xs mb-1">Campaign</p>
                     <p className="text-parchment/70 text-sm truncate">{campaign.name}</p>
                     {campaign.join_code && (
                       <div className="flex items-center gap-1.5 mt-1">
@@ -172,11 +156,10 @@ export function Navbar() {
                   </div>
                 )}
 
-                {/* Account actions */}
                 {character && (
                   <button
                     onClick={handleSwitchCharacter}
-                    className="w-full text-left px-4 py-2 text-parchment/70 hover:text-parchment hover:bg-stone/20 text-sm transition-colors"
+                    className="w-full text-left px-4 py-2 text-parchment/60 hover:text-parchment hover:bg-stone/20 text-sm transition-colors"
                   >
                     Switch Character
                   </button>
@@ -184,7 +167,7 @@ export function Navbar() {
                 {campaign && (
                   <button
                     onClick={handleSwitchCampaign}
-                    className="w-full text-left px-4 py-2 text-parchment/70 hover:text-parchment hover:bg-stone/20 text-sm transition-colors"
+                    className="w-full text-left px-4 py-2 text-parchment/60 hover:text-parchment hover:bg-stone/20 text-sm transition-colors"
                   >
                     Switch Campaign
                   </button>
@@ -192,7 +175,7 @@ export function Navbar() {
                 {hasAccountActions && <div className="border-t border-gold/10 my-1" />}
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-ember/80 hover:text-ember hover:bg-stone/20 text-sm transition-colors"
+                  className="w-full text-left px-4 py-2 text-ember/70 hover:text-ember-light hover:bg-stone/20 text-sm transition-colors"
                 >
                   Logout
                 </button>
