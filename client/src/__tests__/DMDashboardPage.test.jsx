@@ -89,4 +89,21 @@ describe('DMDashboardPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.getByText('Price multiplier saved!')).toBeInTheDocument());
   });
+
+  it('price multiplier stepper has − and + buttons', async () => {
+    renderWithProviders(<DMDashboardPage />);
+    await waitFor(() => screen.getByText(/Global Price Multiplier/i));
+    const minusButtons = screen.getAllByRole('button', { name: '−' });
+    const plusButtons = screen.getAllByRole('button', { name: '+' });
+    expect(minusButtons.length).toBeGreaterThan(0);
+    expect(plusButtons.length).toBeGreaterThan(0);
+  });
+
+  it('store name is clickable as a full card row', async () => {
+    renderWithProviders(<DMDashboardPage />);
+    await waitFor(() => screen.getByText('Ye Olde Shoppe'));
+    // Store name is now a <p> inside a clickable div, not a <Link>
+    const storeName = screen.getByText('Ye Olde Shoppe');
+    expect(storeName.tagName).toBe('P');
+  });
 });

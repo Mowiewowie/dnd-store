@@ -5,11 +5,17 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { fromCP, formatGold } from '../utils/gold.js';
 import { Toast } from '../components/Toast.jsx';
 import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
+import { TabBar } from '../components/TabBar.jsx';
+import { BackButton } from '../components/BackButton.jsx';
+import { QuantityStepper } from '../components/QuantityStepper.jsx';
+import { useToast } from '../hooks/useToast.js';
+
+const TABS = [{ key: 'buy', label: 'Buy' }, { key: 'sell', label: 'Sell' }];
 
 function ListingCard({ listing, onBuy, isAlt }) {
   const { gp, sp, cp } = fromCP(listing.effective_price_cp || 0);
   return (
-    <div className={`card p-4 flex justify-between items-center gap-4${isAlt ? ' !bg-[#1a1208]' : ''}`}>
+    <div className={`card p-4 flex justify-between items-center gap-4${isAlt ? ' row-alt' : ''}`}>
       <div className="flex-1 min-w-0">
         <p className="text-parchment font-semibold truncate">{listing.item_name}</p>
         {listing.item_description && (
@@ -32,11 +38,15 @@ function ListingCard({ listing, onBuy, isAlt }) {
 }
 
 function BuyModal({ listing, character, onConfirm, onCancel }) {
-  const { gp, sp, cp } = fromCP(listing.effective_price_cp || 0);
-  const totalChar = character.gold_gp * 100 + character.gold_sp * 10 + character.gold_cp;
-  const canAfford = totalChar >= (listing.effective_price_cp || 0);
-  const afterTotal = totalChar - (listing.effective_price_cp || 0);
-  const afterBreakdown = fromCP(Math.max(0, afterTotal));
+  const [qty, setQty] = useState(1);
+  const unitCP = listing.effective_price_cp || 0;
+  const unitBreakdown = fromCP(unitCP);
+  const totalCP = unitCP * qty;
+  const totalBreakdown = fromCP(totalCP);
+  const charCP = character.gold_gp * 100 + character.gold_sp * 10 + character.gold_cp;
+  const canAfford = charCP >= totalCP;
+  const afterBreakdown = fromCP(Math.max(0, charCP - totalCP));
+  const maxQty = listing.quantity;
 
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
@@ -44,29 +54,28 @@ function BuyModal({ listing, character, onConfirm, onCancel }) {
         <div className="card-fancy p-6">
           <h2 className="fantasy-heading text-xl mb-1">Confirm Purchase</h2>
           <OrnamentDivider className="my-3" />
-          <p className="text-parchment mb-2"><span className="text-parchment/40">Item:</span> {listing.item_name}</p>
-          <p className="text-parchment mb-4"><span className="text-parchment/40">Price:</span> <span className="text-gold font-bold">{formatGold(gp, sp, cp)}</span></p>
+          <p className="text-parchment mb-1"><span className="text-parchment/40">Item:</span> {listing.item_name}</p>
+          <p className="text-parchment mb-4"><span className="text-parchment/40">Unit price:</span> <span className="text-gold font-bold">{formatGold(unitBreakdown.gp, unitBreakdown.sp, unitBreakdown.cp)}</span></p>
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-parchment/60 text-sm">Quantity</span>
+            <QuantityStepper value={qty} onChange={setQty} min={1} max={maxQty} />
+          </div>
           <div className="border border-gold/15 rounded-lg p-3 mb-4 text-sm bg-stone/10">
-            <p className="text-parchment/40 mb-1 text-xs uppercase tracking-wider">After purchase</p>
-            <p className={canAfford ? 'text-gold-light' : 'text-ember-light'}>
-              {formatGold(afterBreakdown.gp, afterBreakdown.sp, afterBreakdown.cp)}
-            </p>
+            <div className="flex justify-between mb-1">
+              <span className="text-parchment/40 text-xs uppercase tracking-wider">Total cost</span>
+              <span className="text-gold font-bold">{formatGold(totalBreakdown.gp, totalBreakdown.sp, totalBreakdown.cp)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-parchment/40 text-xs">After purchase</span>
+              <span className={canAfford ? 'text-gold-light' : 'text-ember-light'}>
+                {formatGold(afterBreakdown.gp, afterBreakdown.sp, afterBreakdown.cp)}
+              </span>
+            </div>
             {!canAfford && <p className="text-ember-light text-xs mt-1">Not enough gold!</p>}
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={onConfirm}
-              disabled={!canAfford}
-              className="btn btn-primary flex-1 py-2"
-            >
-              Buy
-            </button>
-            <button
-              onClick={onCancel}
-              className="btn btn-secondary flex-1 py-2"
-            >
-              Cancel
-            </button>
+            <button onClick={() => onConfirm(qty)} disabled={!canAfford} className="btn btn-primary flex-1 py-2">Buy</button>
+            <button onClick={onCancel} className="btn btn-secondary flex-1 py-2">Cancel</button>
           </div>
         </div>
       </div>
@@ -75,31 +84,35 @@ function BuyModal({ listing, character, onConfirm, onCancel }) {
 }
 
 function SellModal({ item, offerCP, onConfirm, onCancel }) {
-  const { gp, sp, cp } = fromCP(offerCP);
+  const [qty, setQty] = useState(1);
+  const unitBreakdown = fromCP(offerCP);
+  const totalBreakdown = fromCP(offerCP * qty);
+  const maxQty = item.quantity;
+
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
       <div className="bg-base border border-gold/20 rounded-lg p-1 w-full max-w-sm shadow-2xl">
         <div className="card-fancy p-6">
           <h2 className="fantasy-heading text-xl mb-1">Confirm Sale</h2>
           <OrnamentDivider className="my-3" />
-          <p className="text-parchment mb-2"><span className="text-parchment/40">Item:</span> {item.item_name}</p>
+          <p className="text-parchment mb-1"><span className="text-parchment/40">Item:</span> {item.item_name}</p>
           <p className="text-parchment mb-4">
-            <span className="text-parchment/40">Offer:</span>{' '}
-            <span className="text-gold font-bold">{formatGold(gp, sp, cp)}</span>
+            <span className="text-parchment/40">Per item:</span>{' '}
+            <span className="text-gold font-bold">{formatGold(unitBreakdown.gp, unitBreakdown.sp, unitBreakdown.cp)}</span>
           </p>
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-parchment/60 text-sm">Quantity</span>
+            <QuantityStepper value={qty} onChange={setQty} min={1} max={maxQty} />
+          </div>
+          <div className="border border-gold/15 rounded-lg p-3 mb-4 text-sm bg-stone/10">
+            <div className="flex justify-between">
+              <span className="text-parchment/40 text-xs uppercase tracking-wider">Total offer</span>
+              <span className="text-gold font-bold">{formatGold(totalBreakdown.gp, totalBreakdown.sp, totalBreakdown.cp)}</span>
+            </div>
+          </div>
           <div className="flex gap-3">
-            <button
-              onClick={onConfirm}
-              className="btn btn-primary flex-1 py-2"
-            >
-              Sell
-            </button>
-            <button
-              onClick={onCancel}
-              className="btn btn-secondary flex-1 py-2"
-            >
-              Cancel
-            </button>
+            <button onClick={() => onConfirm(qty)} className="btn btn-primary flex-1 py-2">Sell</button>
+            <button onClick={onCancel} className="btn btn-secondary flex-1 py-2">Cancel</button>
           </div>
         </div>
       </div>
@@ -118,8 +131,8 @@ export function StoreDetailPage() {
   const [inventory, setInventory] = useState([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
   const [sellTarget, setSellTarget] = useState(null);
-  const [toast, setToast] = useState('');
   const [filter, setFilter] = useState('');
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     api.get(`/stores/${id}`)
@@ -138,27 +151,22 @@ export function StoreDetailPage() {
     }
   }, [tab]);
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  }
-
-  async function handleConfirmBuy() {
+  async function handleConfirmBuy(qty) {
     try {
       const res = await api.post('/purchase', {
         characterId: character.id,
         listingId: selectedListing.id,
-        quantity: 1,
+        quantity: qty,
       });
       selectCharacter({ ...character, ...res.character });
       setStore(prev => ({
         ...prev,
         listings: prev.listings.map(l =>
-          l.id === selectedListing.id ? { ...l, quantity: l.quantity - 1 } : l
+          l.id === selectedListing.id ? { ...l, quantity: l.quantity - qty } : l
         ),
       }));
       api.get(`/characters/${character.id}/inventory`).then(setInventory).catch(() => {});
-      showToast(`Purchased ${selectedListing.item_name}!`);
+      showToast(`Purchased ${qty > 1 ? `${qty}× ` : ''}${selectedListing.item_name}!`);
     } catch (err) {
       showToast(`Error: ${err.message}`);
     } finally {
@@ -166,21 +174,21 @@ export function StoreDetailPage() {
     }
   }
 
-  async function handleConfirmSell() {
+  async function handleConfirmSell(qty) {
     if (!sellTarget) return;
     try {
       const res = await api.post(`/stores/${id}/sell`, {
         characterId: character.id,
         inventoryItemId: sellTarget.id,
-        quantity: 1,
+        quantity: qty,
       });
       selectCharacter({ ...character, ...res.character });
       setInventory(prev => {
-        const updated = prev.map(i => i.id === sellTarget.id ? { ...i, quantity: i.quantity - 1 } : i);
+        const updated = prev.map(i => i.id === sellTarget.id ? { ...i, quantity: i.quantity - qty } : i);
         return updated.filter(i => i.quantity > 0);
       });
       const { gp, sp, cp } = fromCP(res.gold_received_cp);
-      showToast(`Sold ${sellTarget.item_name} for ${formatGold(gp, sp, cp)}!`);
+      showToast(`Sold ${qty > 1 ? `${qty}× ` : ''}${sellTarget.item_name} for ${formatGold(gp, sp, cp)}!`);
     } catch (err) {
       showToast(`Error: ${err.message}`);
     } finally {
@@ -207,12 +215,7 @@ export function StoreDetailPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <button
-        onClick={() => navigate('/market')}
-        className="inline-flex items-center gap-1.5 mb-6 px-3 py-1.5 rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
-      >
-        ← Market
-      </button>
+      <BackButton label="Market" onClick={() => navigate('/market')} />
 
       <div className="mb-6">
         <h1 className="fantasy-heading text-3xl">{store.name}</h1>
@@ -220,22 +223,7 @@ export function StoreDetailPage() {
         {store.description && <p className="text-parchment/50 text-sm mt-2">{store.description}</p>}
       </div>
 
-      {/* Buy / Sell tabs — bottom border indicator */}
-      <div className="flex border-b border-gold/20 mb-6">
-        {[{ key: 'buy', label: 'Buy' }, { key: 'sell', label: 'Sell' }].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-6 pb-2 text-sm font-semibold transition-colors ${
-              tab === key
-                ? 'text-gold border-b-2 border-gold -mb-px'
-                : 'text-parchment/40 hover:text-parchment/70'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} activeTab={tab} onChange={setTab} />
 
       {tab === 'buy' && (
         <>
@@ -263,11 +251,6 @@ export function StoreDetailPage() {
 
       {tab === 'sell' && (
         <>
-          <p className="text-parchment/40 text-xs mb-4">
-            This store buys at{' '}
-            <span className="text-gold">{Math.round((0.75 - (store.price_bias ?? 0) / 8) * 100)}%</span>
-            {' '}of item value.
-          </p>
           {inventoryLoading ? (
             <p className="text-parchment/40 text-sm">Loading inventory...</p>
           ) : inventory.length === 0 ? (
@@ -278,7 +261,7 @@ export function StoreDetailPage() {
                 const offerCP = getOfferCP(item);
                 const { gp, sp, cp } = fromCP(offerCP);
                 return (
-                  <div key={item.id} className={`card p-4 flex justify-between items-center gap-4${i % 2 === 1 ? ' !bg-[#1a1208]' : ''}`}>
+                  <div key={item.id} className={`card p-4 flex justify-between items-center gap-4${i % 2 === 1 ? ' row-alt' : ''}`}>
                     <div className="flex-1 min-w-0">
                       <p className="text-parchment font-semibold truncate">{item.item_name}</p>
                       {item.item_description && (

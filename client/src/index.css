@@ -61,6 +61,15 @@ option {
   color: #f5e6c8;
 }
 
+/* ── Number inputs — hide native spinners; custom +/− buttons used instead ── */
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
+
 /* ── Toast animation ──────────────────────────────────────────────── */
 
 @keyframes toast-in {
@@ -114,6 +123,9 @@ option {
     margin-top: 0.35rem;
     margin-bottom: 2rem;
   }
+
+  /* Alternating list row — overrides .card background */
+  .row-alt { background-color: #1a1208 !important; }
 
   /* CSS ::before icon accents — invisible to testing-library */
   .page-title-market::before { content: '⚔  '; color: rgba(201,168,76,0.5); font-size: 0.85em; }

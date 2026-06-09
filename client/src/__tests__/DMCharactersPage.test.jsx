@@ -68,7 +68,7 @@ describe('DMCharacterPage', () => {
   it('switching to History tab shows empty state when no transactions', async () => {
     renderWithProviders(<DMCharacterPage />);
     await waitFor(() => screen.getByRole('button', { name: 'History' }));
-    await (await import('@testing-library/user-event')).default.click(screen.getByRole('button', { name: 'History' }));
+    await userEvent.click(screen.getByRole('button', { name: 'History' }));
     await waitFor(() => expect(screen.getByText(/No history yet/i)).toBeInTheDocument());
   });
 

@@ -2,16 +2,15 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../utils/api.js';
 import { GoldDisplay } from '../components/GoldDisplay.jsx';
-import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
+import { TrashIcon } from '../components/TrashIcon.jsx';
 import { Toast } from '../components/Toast.jsx';
+import { TabBar } from '../components/TabBar.jsx';
+import { GoldAdjustForm } from '../components/GoldAdjustForm.jsx';
 import { fromCP, formatGold } from '../utils/gold.js';
+import { TX_LABELS } from '../utils/constants.js';
+import { useToast } from '../hooks/useToast.js';
 
-const TX_LABELS = {
-  purchase:      { label: 'Bought',   color: 'text-ember' },
-  sale:          { label: 'Sold',     color: 'text-gold-light' },
-  adjustment:    { label: 'Adjusted', color: 'text-parchment/60' },
-  dm_adjustment: { label: 'DM Grant', color: 'text-gold/70' },
-};
+const TABS = [{ key: 'inventory', label: 'Inventory' }, { key: 'history', label: 'History' }];
 
 export function CharacterPage() {
   const { character, selectCharacter } = useAuth();
@@ -20,9 +19,7 @@ export function CharacterPage() {
   const [inventory, setInventory] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
   const [invLoading, setInvLoading] = useState(true);
-  const [goldForm, setGoldForm] = useState({ amount: '', unit: 'gp', direction: 'add', notes: '' });
-  const [goldError, setGoldError] = useState('');
-  const [toast, setToast] = useState('');
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     if (!character) return;
@@ -43,41 +40,22 @@ export function CharacterPage() {
 
   if (!character) return null;
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  }
-
-  async function handleGoldAdjust(e) {
-    e.preventDefault();
-    setGoldError('');
-    const amount = parseFloat(goldForm.amount);
-    if (!amount || amount <= 0) { setGoldError('Enter a positive amount'); return; }
-
-    const multipliers = { gp: 100, sp: 10, cp: 1 };
-    let deltaCp = Math.round(amount * multipliers[goldForm.unit]);
-    if (goldForm.direction === 'subtract') deltaCp = -deltaCp;
-
-    try {
-      const updated = await api.patch(`/characters/${character.id}/money`, {
-        delta_cp: deltaCp,
-        notes: goldForm.notes.trim() || undefined,
-      });
-      selectCharacter({ ...character, ...updated });
-      setGoldForm({ amount: '', unit: 'gp', direction: 'add', notes: '' });
-      setTransactions(prev => prev.length > 0 ? [{
-        id: Date.now(),
-        item_name: 'Gold adjustment',
-        price_paid_cp: Math.abs(deltaCp),
-        quantity: 1,
-        type: 'adjustment',
-        notes: goldForm.notes.trim() || (deltaCp > 0 ? 'Gold added' : 'Gold removed'),
-        purchased_at: new Date().toISOString(),
-      }, ...prev] : prev);
-      showToast('Gold updated!');
-    } catch (err) {
-      setGoldError(err.message);
-    }
+  async function handleGoldAdjust(deltaCp, notes) {
+    const updated = await api.patch(`/characters/${character.id}/money`, {
+      delta_cp: deltaCp,
+      notes,
+    });
+    selectCharacter({ ...character, ...updated });
+    setTransactions(prev => prev.length > 0 ? [{
+      id: Date.now(),
+      item_name: 'Gold adjustment',
+      price_paid_cp: Math.abs(deltaCp),
+      quantity: 1,
+      type: 'adjustment',
+      notes: notes || (deltaCp > 0 ? 'Gold added' : 'Gold removed'),
+      purchased_at: new Date().toISOString(),
+    }, ...prev] : prev);
+    showToast('Gold updated!');
   }
 
   async function handleRemoveItem(itemId) {
@@ -94,7 +72,6 @@ export function CharacterPage() {
       <h1 className="fantasy-heading text-3xl">{character.name}</h1>
       <div className="section-divider" />
 
-      {/* Character summary */}
       <div className="card-fancy p-5 mb-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -108,70 +85,15 @@ export function CharacterPage() {
         </div>
       </div>
 
-      {/* Gold adjustment */}
-      <div className="card-fancy p-4 mb-6">
-        <h2 className="fantasy-heading text-sm mb-1">Adjust Gold</h2>
-        <OrnamentDivider className="my-2" />
-        <form onSubmit={handleGoldAdjust} className="space-y-2">
-          <div className="flex gap-2">
-            <select
-              value={goldForm.direction}
-              onChange={e => setGoldForm(p => ({ ...p, direction: e.target.value }))}
-              className="input-field text-sm !w-auto"
-              style={{ colorScheme: 'dark' }}
-            >
-              <option value="add">Receive</option>
-              <option value="subtract">Spend / Lose</option>
-            </select>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={goldForm.amount}
-              onChange={e => setGoldForm(p => ({ ...p, amount: e.target.value }))}
-              placeholder="Amount"
-              className="input-field text-sm flex-1"
-            />
-            <select
-              value={goldForm.unit}
-              onChange={e => setGoldForm(p => ({ ...p, unit: e.target.value }))}
-              className="input-field text-sm !w-auto"
-              style={{ colorScheme: 'dark' }}
-            >
-              <option value="gp">GP</option>
-              <option value="sp">SP</option>
-              <option value="cp">CP</option>
-            </select>
-          </div>
-          <input
-            value={goldForm.notes}
-            onChange={e => setGoldForm(p => ({ ...p, notes: e.target.value }))}
-            placeholder="Reason (e.g. Quest reward, Gambling)"
-            className="input-field text-sm"
-          />
-          {goldError && <p className="text-ember-light text-xs">{goldError}</p>}
-          <button type="submit" className="btn btn-primary w-full py-2 text-sm">
-            Log Change
-          </button>
-        </form>
-      </div>
+      <GoldAdjustForm
+        onAdjust={handleGoldAdjust}
+        receiveLabel="Receive"
+        spendLabel="Spend / Lose"
+        submitLabel="Log Change"
+        notesPlaceholder="Reason (e.g. Quest reward, Gambling)"
+      />
 
-      {/* Tab bar — bottom border indicator */}
-      <div className="flex border-b border-gold/20 mb-6">
-        {[{ key: 'inventory', label: 'Inventory' }, { key: 'history', label: 'History' }].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-6 pb-2 text-sm font-semibold transition-colors ${
-              tab === key
-                ? 'text-gold border-b-2 border-gold -mb-px'
-                : 'text-parchment/40 hover:text-parchment/70'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} activeTab={tab} onChange={setTab} />
 
       {tab === 'inventory' && (
         invLoading ? (
@@ -181,16 +103,17 @@ export function CharacterPage() {
         ) : (
           <div className="space-y-2">
             {inventory.map((item, i) => (
-              <div key={item.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' !bg-[#1a1208]' : ''}`}>
+              <div key={item.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' row-alt' : ''}`}>
                 <div>
                   <p className="text-parchment text-sm font-semibold">{item.item_name}</p>
                   <p className="text-parchment/40 text-xs">Qty: {item.quantity}</p>
                 </div>
                 <button
                   onClick={() => handleRemoveItem(item.id)}
-                  className="text-ember/60 hover:text-ember-light text-xs transition-colors"
+                  className="text-ember/50 hover:text-ember-light transition-colors p-1"
+                  aria-label="Discard"
                 >
-                  Discard
+                  <TrashIcon />
                 </button>
               </div>
             ))}
@@ -210,7 +133,7 @@ export function CharacterPage() {
               const info = TX_LABELS[tx.type] || TX_LABELS.adjustment;
               const isSale = tx.type === 'sale';
               return (
-                <div key={tx.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' !bg-[#1a1208]' : ''}`}>
+                <div key={tx.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' row-alt' : ''}`}>
                   <div>
                     <p className="text-parchment text-sm font-semibold">{tx.item_name}</p>
                     <p className="text-parchment/40 text-xs">

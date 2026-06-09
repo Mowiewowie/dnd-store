@@ -78,4 +78,11 @@ describe('CharacterPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Discard' }));
     await waitFor(() => expect(screen.queryByText(MOCK_INVENTORY_ITEM.item_name)).not.toBeInTheDocument());
   });
+
+  it('discard button is icon-only with aria-label', async () => {
+    renderWithProviders(<CharacterPage />);
+    await waitFor(() => screen.getByText(MOCK_INVENTORY_ITEM.item_name));
+    const btn = screen.getByRole('button', { name: 'Discard' });
+    expect(btn.textContent.trim()).toBe('');
+  });
 });

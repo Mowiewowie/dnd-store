@@ -2,16 +2,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { GoldDisplay } from '../components/GoldDisplay.jsx';
-import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
+import { TrashIcon } from '../components/TrashIcon.jsx';
 import { Toast } from '../components/Toast.jsx';
+import { TabBar } from '../components/TabBar.jsx';
+import { BackButton } from '../components/BackButton.jsx';
+import { GoldAdjustForm } from '../components/GoldAdjustForm.jsx';
+import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
 import { fromCP, formatGold } from '../utils/gold.js';
+import { TX_LABELS } from '../utils/constants.js';
+import { useToast } from '../hooks/useToast.js';
 
-const TX_LABELS = {
-  purchase:      { label: 'Bought',   color: 'text-ember' },
-  sale:          { label: 'Sold',     color: 'text-gold-light' },
-  adjustment:    { label: 'Adjusted', color: 'text-parchment/60' },
-  dm_adjustment: { label: 'DM Grant', color: 'text-gold/70' },
-};
+const TABS = [{ key: 'inventory', label: 'Inventory' }, { key: 'history', label: 'History' }];
 
 export function DMCharacterPage() {
   const { id } = useParams();
@@ -21,10 +22,7 @@ export function DMCharacterPage() {
   const [transactions, setTransactions] = useState([]);
   const [tab, setTab] = useState('inventory');
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState('');
-
-  const [goldForm, setGoldForm] = useState({ amount: '', unit: 'gp', direction: 'add', notes: '' });
-  const [goldError, setGoldError] = useState('');
+  const { toast, showToast } = useToast();
 
   const [itemForm, setItemForm] = useState({ item_name: '', item_description: '', base_value_cp: '' });
   const [itemError, setItemError] = useState('');
@@ -46,41 +44,22 @@ export function DMCharacterPage() {
       .catch(() => {});
   }, [id]);
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  }
-
-  async function handleGoldAdjust(e) {
-    e.preventDefault();
-    setGoldError('');
-    const amount = parseFloat(goldForm.amount);
-    if (!amount || amount <= 0) { setGoldError('Enter a positive amount'); return; }
-
-    const multipliers = { gp: 100, sp: 10, cp: 1 };
-    let deltaCp = Math.round(amount * multipliers[goldForm.unit]);
-    if (goldForm.direction === 'subtract') deltaCp = -deltaCp;
-
-    try {
-      const updated = await api.patch(`/characters/${id}/money`, {
-        delta_cp: deltaCp,
-        notes: goldForm.notes.trim() || undefined,
-      });
-      setCharacter(prev => prev ? { ...prev, ...updated } : updated);
-      setGoldForm({ amount: '', unit: 'gp', direction: 'add', notes: '' });
-      setTransactions(prev => [{
-        id: Date.now(),
-        item_name: 'Gold adjustment',
-        price_paid_cp: Math.abs(deltaCp),
-        quantity: 1,
-        type: 'dm_adjustment',
-        notes: goldForm.notes.trim() || (deltaCp > 0 ? 'Gold added by DM' : 'Gold removed by DM'),
-        purchased_at: new Date().toISOString(),
-      }, ...prev]);
-      showToast('Gold updated!');
-    } catch (err) {
-      setGoldError(err.message);
-    }
+  async function handleGoldAdjust(deltaCp, notes) {
+    const updated = await api.patch(`/characters/${id}/money`, {
+      delta_cp: deltaCp,
+      notes,
+    });
+    setCharacter(prev => prev ? { ...prev, ...updated } : updated);
+    setTransactions(prev => [{
+      id: Date.now(),
+      item_name: 'Gold adjustment',
+      price_paid_cp: Math.abs(deltaCp),
+      quantity: 1,
+      type: 'dm_adjustment',
+      notes: notes || (deltaCp > 0 ? 'Gold added by DM' : 'Gold removed by DM'),
+      purchased_at: new Date().toISOString(),
+    }, ...prev]);
+    showToast('Gold updated!');
   }
 
   async function handleAddItem(e) {
@@ -117,19 +96,13 @@ export function DMCharacterPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <button
-        onClick={() => navigate('/dm/characters')}
-        className="inline-flex items-center gap-1.5 mb-6 px-3 py-1.5 rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
-      >
-        ← Characters
-      </button>
+      <BackButton label="Characters" onClick={() => navigate('/dm/characters')} />
 
       {character && (
         <>
           <h1 className="fantasy-heading text-3xl page-title-chars">{character.name}</h1>
           <div className="section-divider" />
 
-          {/* Character summary */}
           <div className="card-fancy p-5 mb-6">
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -149,74 +122,18 @@ export function DMCharacterPage() {
         </>
       )}
 
-      {/* Gold adjustment */}
-      <div className="card-fancy p-4 mb-6">
-        <h2 className="fantasy-heading text-sm mb-1">Adjust Gold</h2>
-        <OrnamentDivider className="my-2" />
-        <form onSubmit={handleGoldAdjust} className="space-y-2">
-          <div className="flex gap-2">
-            <select
-              value={goldForm.direction}
-              onChange={e => setGoldForm(p => ({ ...p, direction: e.target.value }))}
-              className="input-field text-sm !w-auto"
-              style={{ colorScheme: 'dark' }}
-            >
-              <option value="add">Give</option>
-              <option value="subtract">Take / Deduct</option>
-            </select>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={goldForm.amount}
-              onChange={e => setGoldForm(p => ({ ...p, amount: e.target.value }))}
-              placeholder="Amount"
-              className="input-field text-sm flex-1"
-            />
-            <select
-              value={goldForm.unit}
-              onChange={e => setGoldForm(p => ({ ...p, unit: e.target.value }))}
-              className="input-field text-sm !w-auto"
-              style={{ colorScheme: 'dark' }}
-            >
-              <option value="gp">GP</option>
-              <option value="sp">SP</option>
-              <option value="cp">CP</option>
-            </select>
-          </div>
-          <input
-            value={goldForm.notes}
-            onChange={e => setGoldForm(p => ({ ...p, notes: e.target.value }))}
-            placeholder="Reason (e.g. Quest reward, Fine, Loot)"
-            className="input-field text-sm"
-          />
-          {goldError && <p className="text-ember-light text-xs">{goldError}</p>}
-          <button type="submit" className="btn btn-primary w-full py-2 text-sm">
-            Apply
-          </button>
-        </form>
-      </div>
+      <GoldAdjustForm
+        onAdjust={handleGoldAdjust}
+        receiveLabel="Give"
+        spendLabel="Take / Deduct"
+        submitLabel="Apply"
+        notesPlaceholder="Reason (e.g. Quest reward, Fine, Loot)"
+      />
 
-      {/* Tab bar — bottom border indicator */}
-      <div className="flex border-b border-gold/20 mb-6">
-        {[{ key: 'inventory', label: 'Inventory' }, { key: 'history', label: 'History' }].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-6 pb-2 text-sm font-semibold transition-colors ${
-              tab === key
-                ? 'text-gold border-b-2 border-gold -mb-px'
-                : 'text-parchment/40 hover:text-parchment/70'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={TABS} activeTab={tab} onChange={setTab} />
 
       {tab === 'inventory' && (
         <>
-          {/* Grant item form */}
           <form onSubmit={handleAddItem} className="card-fancy p-4 mb-4 space-y-2">
             <h3 className="text-parchment/70 text-xs uppercase tracking-wider">Grant Item</h3>
             <OrnamentDivider className="my-2" />
@@ -253,7 +170,7 @@ export function DMCharacterPage() {
               {inventory.map((item, i) => {
                 const val = item.base_value_cp ? fromCP(item.base_value_cp) : null;
                 return (
-                  <div key={item.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' !bg-[#1a1208]' : ''}`}>
+                  <div key={item.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' row-alt' : ''}`}>
                     <div>
                       <p className="text-parchment text-sm font-semibold">{item.item_name}</p>
                       <p className="text-parchment/40 text-xs">
@@ -263,9 +180,10 @@ export function DMCharacterPage() {
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id, item.item_name)}
-                      className="text-ember/60 hover:text-ember-light text-xs transition-colors"
+                      className="text-ember/50 hover:text-ember-light transition-colors p-1"
+                      aria-label="Remove"
                     >
-                      Remove
+                      <TrashIcon />
                     </button>
                   </div>
                 );
@@ -285,7 +203,7 @@ export function DMCharacterPage() {
               const info = TX_LABELS[tx.type] || TX_LABELS.adjustment;
               const isSale = tx.type === 'sale';
               return (
-                <div key={tx.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' !bg-[#1a1208]' : ''}`}>
+                <div key={tx.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' row-alt' : ''}`}>
                   <div>
                     <p className="text-parchment text-sm font-semibold">{tx.item_name}</p>
                     <p className="text-parchment/40 text-xs">

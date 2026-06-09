@@ -1,29 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { StatusBadge } from '../components/StatusBadge.jsx';
 import { Toast } from '../components/Toast.jsx';
 import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
+import { useToast } from '../hooks/useToast.js';
 
 export function DMDashboardPage() {
+  const navigate = useNavigate();
   const [stores, setStores] = useState([]);
-  const [settings, setSettings] = useState({ price_multiplier: '1.0' });
   const [newStore, setNewStore] = useState({ name: '', description: '', location: '' });
   const [multiplier, setMultiplier] = useState('');
-  const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     Promise.all([api.get('/stores'), api.get('/dm/settings')])
-      .then(([s, d]) => { setStores(s); setSettings(d); setMultiplier(d.price_multiplier); })
+      .then(([s, d]) => { setStores(s); setMultiplier(d.price_multiplier); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  }
 
   async function handleCreateStore(e) {
     e.preventDefault();
@@ -49,8 +45,7 @@ export function DMDashboardPage() {
   async function handleSaveMultiplier(e) {
     e.preventDefault();
     try {
-      const updated = await api.put('/dm/settings', { price_multiplier: parseFloat(multiplier) });
-      setSettings(updated);
+      await api.put('/dm/settings', { price_multiplier: parseFloat(multiplier) });
       showToast('Price multiplier saved!');
     } catch (err) {
       showToast(`Error: ${err.message}`);
@@ -72,15 +67,17 @@ export function DMDashboardPage() {
           <div className="space-y-2 mb-6">
             {stores.length === 0 && <p className="text-parchment/40 text-sm">No stores yet.</p>}
             {stores.map((store, i) => (
-              <div key={store.id} className={`card p-3 flex justify-between items-center gap-3${i % 2 === 1 ? ' !bg-[#1a1208]' : ''}`}>
+              <div
+                key={store.id}
+                onClick={() => navigate(`/dm/stores/${store.id}`)}
+                className={`card p-3 flex justify-between items-center gap-3 cursor-pointer hover:border-gold/50 transition-colors${i % 2 === 1 ? ' row-alt' : ''}`}
+              >
                 <div className="min-w-0">
-                  <Link to={`/dm/stores/${store.id}`} className="text-parchment hover:text-gold font-semibold transition-colors text-sm">
-                    {store.name}
-                  </Link>
+                  <p className="text-parchment font-semibold text-sm">{store.name}</p>
                   {store.location && <p className="text-parchment/35 text-xs mt-0.5">{store.location}</p>}
                 </div>
                 <button
-                  onClick={() => handleToggleStore(store)}
+                  onClick={e => { e.stopPropagation(); handleToggleStore(store); }}
                   className="shrink-0 transition-opacity hover:opacity-80"
                   title={store.is_open ? 'Click to close' : 'Click to open'}
                 >
@@ -128,14 +125,24 @@ export function DMDashboardPage() {
                 Global Price Multiplier
               </label>
               <p className="text-parchment/35 text-xs mb-3">Scales all SRD-default prices. Custom prices are unaffected.</p>
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                value={multiplier}
-                onChange={e => setMultiplier(e.target.value)}
-                className="input-field"
-              />
+              <div className="flex items-center gap-2">
+                <button type="button"
+                  onClick={() => setMultiplier(v => String(Math.max(0.1, Math.round((parseFloat(v || '1') - 0.1) * 10) / 10).toFixed(1)))}
+                  className="w-8 h-10 flex items-center justify-center rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment transition-colors text-lg"
+                >−</button>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  value={multiplier}
+                  onChange={e => setMultiplier(e.target.value)}
+                  className="input-field text-center"
+                />
+                <button type="button"
+                  onClick={() => setMultiplier(v => String((Math.round((parseFloat(v || '1') + 0.1) * 10) / 10).toFixed(1)))}
+                  className="w-8 h-10 flex items-center justify-center rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment transition-colors text-lg"
+                >+</button>
+              </div>
             </div>
             <OrnamentDivider className="my-1" />
             <button type="submit" className="btn btn-primary w-full py-2 text-sm">

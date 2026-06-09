@@ -63,6 +63,13 @@ describe('CharacterSelectPage — delete character', () => {
     expect(screen.getByRole('button', { name: 'Delete Thorin' })).toBeInTheDocument();
   });
 
+  it('delete button has no visible text — icon only', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    const btn = screen.getByRole('button', { name: 'Delete Thorin' });
+    expect(btn.textContent.trim()).toBe('');
+  });
+
   it('clicking delete opens the confirmation modal', async () => {
     renderWithProviders(<CharacterSelectPage />);
     await waitFor(() => screen.getByText('Thorin'));

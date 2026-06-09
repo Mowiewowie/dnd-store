@@ -75,6 +75,35 @@ describe('StoreDetailPage — Buy tab', () => {
     expect(screen.queryByText('Confirm Purchase')).not.toBeInTheDocument();
   });
 
+  it('buy modal shows a quantity stepper defaulting to 1', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getAllByRole('button', { name: 'Buy' }));
+    const buyBtns = screen.getAllByRole('button', { name: 'Buy' });
+    await userEvent.click(buyBtns[buyBtns.length - 1]);
+    await waitFor(() => screen.getByText('Confirm Purchase'));
+    expect(screen.getByDisplayValue('1')).toBeInTheDocument();
+  });
+
+  it('buy modal + button increments the quantity', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getAllByRole('button', { name: 'Buy' }));
+    const buyBtns = screen.getAllByRole('button', { name: 'Buy' });
+    await userEvent.click(buyBtns[buyBtns.length - 1]);
+    await waitFor(() => screen.getByText('Confirm Purchase'));
+    await userEvent.click(screen.getByRole('button', { name: '+' }));
+    expect(screen.getByDisplayValue('2')).toBeInTheDocument();
+  });
+
+  it('buy modal − button does not go below 1', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getAllByRole('button', { name: 'Buy' }));
+    const buyBtns = screen.getAllByRole('button', { name: 'Buy' });
+    await userEvent.click(buyBtns[buyBtns.length - 1]);
+    await waitFor(() => screen.getByText('Confirm Purchase'));
+    await userEvent.click(screen.getByRole('button', { name: '−' }));
+    expect(screen.getByDisplayValue('1')).toBeInTheDocument();
+  });
+
   it('confirming purchase closes modal and shows success toast', async () => {
     renderWithProviders(<StoreDetailPage />);
     await waitFor(() => screen.getByText('Longsword'));
@@ -116,14 +145,6 @@ describe('StoreDetailPage — Sell tab', () => {
     await waitFor(() => expect(screen.getByText(MOCK_INVENTORY_ITEM.item_name)).toBeInTheDocument());
   });
 
-  it('sell tab shows buy rate percentage for the store', async () => {
-    renderWithProviders(<StoreDetailPage />);
-    await waitFor(() => screen.getByRole('button', { name: 'Sell' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Sell' }));
-    // Default bias=0 → 75%
-    await waitFor(() => expect(screen.getByText('75%')).toBeInTheDocument());
-  });
-
   it('sell tab shows offer price for items with base_value_cp', async () => {
     renderWithProviders(<StoreDetailPage />);
     await waitFor(() => screen.getAllByRole('button', { name: 'Sell' }));
@@ -161,6 +182,30 @@ describe('StoreDetailPage — Sell tab', () => {
     await waitFor(() => screen.getByRole('button', { name: 'Sell' }));
     await userEvent.click(screen.getByRole('button', { name: 'Sell' }));
     await waitFor(() => expect(screen.getByText(/inventory is empty/i)).toBeInTheDocument());
+  });
+
+  it('sell modal shows a quantity stepper defaulting to 1', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getByRole('button', { name: 'Sell' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sell' }));
+    await waitFor(() => screen.getByText(MOCK_INVENTORY_ITEM.item_name));
+    const sellBtns = screen.getAllByRole('button', { name: 'Sell' });
+    await userEvent.click(sellBtns[sellBtns.length - 1]);
+    await waitFor(() => screen.getByText('Confirm Sale'));
+    expect(screen.getByDisplayValue('1')).toBeInTheDocument();
+  });
+
+  it('sell modal + button increments the quantity', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getByRole('button', { name: 'Sell' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sell' }));
+    await waitFor(() => screen.getByText(MOCK_INVENTORY_ITEM.item_name));
+    const sellBtns = screen.getAllByRole('button', { name: 'Sell' });
+    await userEvent.click(sellBtns[sellBtns.length - 1]);
+    await waitFor(() => screen.getByText('Confirm Sale'));
+    await userEvent.click(screen.getByRole('button', { name: '+' }));
+    // MOCK_INVENTORY_ITEM.quantity = 1, so max is 1 — value stays at 1
+    expect(screen.getByDisplayValue('1')).toBeInTheDocument();
   });
 
   it('confirming sell closes modal and shows success toast with gold received', async () => {

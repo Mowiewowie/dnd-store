@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../utils/api.js';
 import { GoldDisplay } from '../components/GoldDisplay.jsx';
+import { TrashIcon } from '../components/TrashIcon.jsx';
 import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
 
 const CLASSES = ['Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard', 'Adventurer'];
@@ -107,10 +108,10 @@ export function CharacterSelectPage() {
                   <button
                     type="button"
                     onClick={e => { e.stopPropagation(); setDeleteTarget(char); setDeleteConfirmName(''); setDeleteError(''); }}
-                    className="text-parchment/20 hover:text-ember-light text-xs transition-colors"
+                    className="text-ember/40 hover:text-ember-light transition-colors p-1"
                     aria-label={`Delete ${char.name}`}
                   >
-                    Delete character
+                    <TrashIcon />
                   </button>
                 </div>
               </div>

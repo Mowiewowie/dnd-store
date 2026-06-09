@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { TrashIcon } from '../components/TrashIcon.jsx';
+import { BackButton } from '../components/BackButton.jsx';
+import { QuantityStepper } from '../components/QuantityStepper.jsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { fromCP, formatGold } from '../utils/gold.js';
 import { Toast } from '../components/Toast.jsx';
+import { useToast } from '../hooks/useToast.js';
 
 const TEMPERAMENT_LABELS = [
   { value: -2,   label: 'Generous',   color: 'text-gold-light' },
@@ -29,8 +33,8 @@ export function DMStorePage() {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ item_name: '', item_description: '', custom_price_cp: '', quantity: 1 });
   const [priceOverride, setPriceOverride] = useState(false);
-  const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const { toast, showToast } = useToast();
   const [qtyInputs, setQtyInputs] = useState({});
   const searchRef = useRef(null);
   const biasTimerRef = useRef(null);
@@ -91,11 +95,6 @@ export function DMStorePage() {
     setPriceOverride(false);
     setSearch('');
     setSearchResults([]);
-  }
-
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
   }
 
   async function handleAddListing(e) {
@@ -160,12 +159,7 @@ export function DMStorePage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <button
-        onClick={() => navigate('/dm')}
-        className="inline-flex items-center gap-1.5 mb-6 px-3 py-1.5 rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
-      >
-        ← Markets
-      </button>
+      <BackButton label="Markets" onClick={() => navigate('/dm')} />
       <h1 className="fantasy-heading text-3xl">{store.name} — Listings</h1>
       <div className="section-divider" />
 
@@ -291,12 +285,10 @@ export function DMStorePage() {
               </div>
               <div>
                 <label className="block text-parchment/50 text-xs mb-1">Qty</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.quantity}
-                  onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
-                  className="input-field text-sm w-20"
+                <QuantityStepper
+                  value={parseInt(form.quantity) || 1}
+                  onChange={n => setForm(p => ({ ...p, quantity: String(n) }))}
+                  min={1}
                 />
               </div>
             </div>
@@ -321,7 +313,7 @@ export function DMStorePage() {
                 return (
                   <div
                     key={listing.id}
-                    className={`card p-3 ${i % 2 === 1 ? '!bg-[#1a1208]' : ''}`}
+                    className={`card p-3 ${i % 2 === 1 ? 'row-alt' : ''}`}
                   >
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
@@ -344,7 +336,7 @@ export function DMStorePage() {
                           onChange={e => setQtyInputs(prev => ({ ...prev, [listing.id]: e.target.value }))}
                           onBlur={() => handleQtyInputBlur(listing.id)}
                           onKeyDown={e => e.key === 'Enter' && handleQtyInputBlur(listing.id)}
-                          className="w-12 text-center bg-stone/20 border border-gold/20 rounded px-1 py-0.5 text-parchment text-xs focus:outline-none focus:border-gold/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="input-field text-xs text-center !w-12 !py-0.5"
                         />
                         <button
                           onClick={() => handleQtyStep(listing.id, currentQty, 1)}
@@ -353,9 +345,10 @@ export function DMStorePage() {
                         >+</button>
                         <button
                           onClick={() => handleDeleteListing(listing.id)}
-                          className="ml-1 text-ember/60 hover:text-ember-light text-xs transition-colors px-1"
+                          className="ml-1 text-ember/50 hover:text-ember-light transition-colors p-1"
+                          aria-label="Remove"
                         >
-                          Remove
+                          <TrashIcon />
                         </button>
                       </div>
                     </div>
