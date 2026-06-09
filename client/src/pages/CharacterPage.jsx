@@ -180,8 +180,8 @@ export function CharacterPage() {
           <p className="text-parchment/40 text-sm">No items yet. Head to the market!</p>
         ) : (
           <div className="space-y-2">
-            {inventory.map(item => (
-              <div key={item.id} className="card p-3 flex justify-between items-center">
+            {inventory.map((item, i) => (
+              <div key={item.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' bg-stone/5' : ''}`}>
                 <div>
                   <p className="text-parchment text-sm font-semibold">{item.item_name}</p>
                   <p className="text-parchment/40 text-xs">Qty: {item.quantity}</p>
@@ -205,12 +205,12 @@ export function CharacterPage() {
           <p className="text-parchment/40 text-sm">No history yet.</p>
         ) : (
           <div className="space-y-2">
-            {transactions.map(tx => {
+            {transactions.map((tx, i) => {
               const { gp, sp, cp } = fromCP(tx.price_paid_cp);
               const info = TX_LABELS[tx.type] || TX_LABELS.adjustment;
               const isSale = tx.type === 'sale';
               return (
-                <div key={tx.id} className="card p-3 flex justify-between items-center">
+                <div key={tx.id} className={`card p-3 flex justify-between items-center${i % 2 === 1 ? ' bg-stone/5' : ''}`}>
                   <div>
                     <p className="text-parchment text-sm font-semibold">{tx.item_name}</p>
                     <p className="text-parchment/40 text-xs">

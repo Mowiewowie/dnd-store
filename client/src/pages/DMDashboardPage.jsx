@@ -71,8 +71,8 @@ export function DMDashboardPage() {
 
           <div className="space-y-2 mb-6">
             {stores.length === 0 && <p className="text-parchment/40 text-sm">No stores yet.</p>}
-            {stores.map(store => (
-              <div key={store.id} className="card p-3 flex justify-between items-center gap-3">
+            {stores.map((store, i) => (
+              <div key={store.id} className={`card p-3 flex justify-between items-center gap-3${i % 2 === 1 ? ' bg-stone/5' : ''}`}>
                 <div className="min-w-0">
                   <Link to={`/dm/stores/${store.id}`} className="text-parchment hover:text-gold font-semibold transition-colors text-sm">
                     {store.name}
