@@ -94,7 +94,21 @@ function migrate(db) {
       item_name TEXT NOT NULL,
       price_paid_cp INTEGER NOT NULL,
       quantity INTEGER NOT NULL DEFAULT 1,
+      type TEXT NOT NULL DEFAULT 'purchase',
+      notes TEXT,
       purchased_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS character_inventory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+      item_name TEXT NOT NULL,
+      item_description TEXT,
+      item_srd_index TEXT,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      base_value_cp INTEGER,
+      rarity TEXT,
+      acquired_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS dm_settings (
@@ -108,4 +122,7 @@ function migrate(db) {
   try { db.exec('ALTER TABLE stores ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE'); } catch {}
   // Per-store price bias for Merchant's Temperament feature
   try { db.exec('ALTER TABLE stores ADD COLUMN price_bias REAL NOT NULL DEFAULT 0'); } catch {}
+  // Transaction type and notes for sell/adjustment history
+  try { db.exec("ALTER TABLE transactions ADD COLUMN type TEXT NOT NULL DEFAULT 'purchase'"); } catch {}
+  try { db.exec('ALTER TABLE transactions ADD COLUMN notes TEXT'); } catch {}
 }

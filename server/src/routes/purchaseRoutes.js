@@ -64,9 +64,24 @@ router.post('/', requireAuth, requireCampaign, (req, res) => {
     ).run(quantity, listingId);
 
     const txResult = db.prepare(
-      `INSERT INTO transactions (character_id, listing_id, item_name, price_paid_cp, quantity)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO transactions (character_id, listing_id, item_name, price_paid_cp, quantity, type)
+       VALUES (?, ?, ?, ?, ?, 'purchase')`
     ).run(characterId, listingId, listing.item_name, totalCostCp, quantity);
+
+    // Track in inventory — merge with existing stack if same item
+    const existingInv = db.prepare(
+      `SELECT id FROM character_inventory
+       WHERE character_id = ? AND item_name = ? AND COALESCE(item_srd_index, '') = COALESCE(?, '')`
+    ).get(characterId, listing.item_name, listing.item_srd_index || null);
+
+    if (existingInv) {
+      db.prepare('UPDATE character_inventory SET quantity = quantity + ? WHERE id = ?').run(quantity, existingInv.id);
+    } else {
+      db.prepare(
+        `INSERT INTO character_inventory (character_id, item_name, item_description, item_srd_index, quantity, base_value_cp)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(characterId, listing.item_name, listing.item_description || null, listing.item_srd_index || null, quantity, unitPriceCp);
+    }
 
     db.exec('COMMIT');
 

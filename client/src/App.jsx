@@ -10,6 +10,8 @@ import { StoreDetailPage } from './pages/StoreDetailPage.jsx';
 import { CharacterPage } from './pages/CharacterPage.jsx';
 import { DMDashboardPage } from './pages/DMDashboardPage.jsx';
 import { DMStorePage } from './pages/DMStorePage.jsx';
+import { DMCharactersPage } from './pages/DMCharactersPage.jsx';
+import { DMCharacterPage } from './pages/DMCharacterPage.jsx';
 
 function Layout({ children }) {
   return (
@@ -68,6 +70,18 @@ export default function App() {
           <Route path="/dm/stores/:id" element={
             <DMRoute>
               <Layout><DMStorePage /></Layout>
+            </DMRoute>
+          } />
+
+          <Route path="/dm/characters" element={
+            <DMRoute>
+              <Layout><DMCharactersPage /></Layout>
+            </DMRoute>
+          } />
+
+          <Route path="/dm/characters/:id" element={
+            <DMRoute>
+              <Layout><DMCharacterPage /></Layout>
             </DMRoute>
           } />
 

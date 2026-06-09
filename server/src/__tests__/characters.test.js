@@ -104,7 +104,7 @@ describe('GET /api/characters/:id/transactions', () => {
     assert.deepEqual(res.body, []);
   });
 
-  it("forbids accessing another user's character transactions", async () => {
+  it("forbids accessing another player's character transactions", async () => {
     const { campaignId, joinCode } = await makeDMWithCampaign('9');
     const player1 = await makePlayerInCampaign('9a', joinCode);
     const player2 = await makePlayerInCampaign('9b', joinCode);
@@ -114,5 +114,217 @@ describe('GET /api/characters/:id/transactions', () => {
     const res = await player2.get(`/api/characters/${charRes.body.id}/transactions`)
       .set('X-Campaign-Id', String(campaignId));
     assert.equal(res.status, 403);
+  });
+
+  it('DM can access any character transactions in campaign', async () => {
+    const { dm, campaignId, joinCode } = await makeDMWithCampaign('10');
+    const player = await makePlayerInCampaign('10', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Ranger' });
+    const res = await dm.get(`/api/characters/${charRes.body.id}/transactions`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body));
+  });
+});
+
+describe('GET /api/characters/campaign', () => {
+  it('DM gets all campaign characters with player username', async () => {
+    const { dm, campaignId, joinCode } = await makeDMWithCampaign('11');
+    const player = await makePlayerInCampaign('11', joinCode);
+    await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Paladin' });
+    const res = await dm.get('/api/characters/campaign').set('X-Campaign-Id', String(campaignId));
+    assert.equal(res.status, 200);
+    assert.equal(res.body.length, 1);
+    assert.equal(res.body[0].name, 'Paladin');
+    assert.ok(res.body[0].username, 'should include player username');
+  });
+
+  it('player gets 403', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('12');
+    const player = await makePlayerInCampaign('12', joinCode);
+    const res = await player.get('/api/characters/campaign').set('X-Campaign-Id', String(campaignId));
+    assert.equal(res.status, 403);
+  });
+});
+
+describe('PATCH /api/characters/:id/money', () => {
+  it('adds gold and logs an adjustment transaction', async () => {
+    const { dm, campaignId, joinCode } = await makeDMWithCampaign('13');
+    const player = await makePlayerInCampaign('13', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Merchant', gold_gp: 10 });
+    const charId = charRes.body.id;
+
+    const res = await dm.patch(`/api/characters/${charId}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: 500, notes: 'Quest reward' });
+    assert.equal(res.status, 200);
+    // 10 gp = 1000 cp + 500 cp = 1500 cp = 15 gp
+    assert.equal(res.body.gold_gp, 15);
+
+    const tx = await dm.get(`/api/characters/${charId}/transactions`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(tx.body[0].type, 'dm_adjustment');
+    assert.equal(tx.body[0].notes, 'Quest reward');
+  });
+
+  it('subtracts gold correctly', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('14');
+    const player = await makePlayerInCampaign('14', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Gambler', gold_gp: 10 });
+
+    const res = await player.patch(`/api/characters/${charRes.body.id}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: -500, notes: 'Lost at dice' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.gold_gp, 5);
+  });
+
+  it('rejects adjustment that would go below zero', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('15');
+    const player = await makePlayerInCampaign('15', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Broke', gold_gp: 1 });
+
+    const res = await player.patch(`/api/characters/${charRes.body.id}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: -999999 });
+    assert.equal(res.status, 400);
+  });
+
+  it('player cannot adjust another player\'s character', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('16');
+    const player1 = await makePlayerInCampaign('16a', joinCode);
+    const player2 = await makePlayerInCampaign('16b', joinCode);
+    const charRes = await player1.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Victim' });
+
+    const res = await player2.patch(`/api/characters/${charRes.body.id}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: 100 });
+    assert.equal(res.status, 403);
+  });
+});
+
+describe('PATCH /api/characters/:id/money — edge cases', () => {
+  it('player adjustment logs type=adjustment (not dm_adjustment)', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('21');
+    const player = await makePlayerInCampaign('21', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'SelfAdjuster', gold_gp: 10 });
+    const charId = charRes.body.id;
+
+    await player.patch(`/api/characters/${charId}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: 100, notes: 'Found coin' });
+
+    const txRes = await player.get(`/api/characters/${charId}/transactions`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(txRes.body[0].type, 'adjustment');
+  });
+
+  it('rejects delta_cp of zero', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('22');
+    const player = await makePlayerInCampaign('22', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'ZeroGold', gold_gp: 5 });
+
+    const res = await player.patch(`/api/characters/${charRes.body.id}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: 0 });
+    assert.equal(res.status, 400);
+  });
+
+  it('DM adjustment logs type=dm_adjustment', async () => {
+    const { dm, campaignId, joinCode } = await makeDMWithCampaign('23');
+    const player = await makePlayerInCampaign('23', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'DMAdjust', gold_gp: 10 });
+    const charId = charRes.body.id;
+
+    await dm.patch(`/api/characters/${charId}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: 500, notes: 'Loot' });
+
+    const txRes = await dm.get(`/api/characters/${charId}/transactions`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(txRes.body[0].type, 'dm_adjustment');
+  });
+});
+
+describe('Character inventory endpoints', () => {
+  it('GET /inventory returns empty array initially', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('17');
+    const player = await makePlayerInCampaign('17', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'EmptyBag' });
+
+    const res = await player.get(`/api/characters/${charRes.body.id}/inventory`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, []);
+  });
+
+  it('DM can add item to inventory', async () => {
+    const { dm, campaignId, joinCode } = await makeDMWithCampaign('18');
+    const player = await makePlayerInCampaign('18', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Lucky' });
+
+    const res = await dm.post(`/api/characters/${charRes.body.id}/inventory`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ item_name: 'Dragon Scale', item_description: 'Rare trophy', base_value_cp: 5000 });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.item_name, 'Dragon Scale');
+    assert.equal(res.body.base_value_cp, 5000);
+  });
+
+  it('player cannot add items via DM endpoint', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('19');
+    const player = await makePlayerInCampaign('19', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Cheater' });
+
+    const res = await player.post(`/api/characters/${charRes.body.id}/inventory`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ item_name: 'Self-gifted Sword', base_value_cp: 1000 });
+    assert.equal(res.status, 403);
+  });
+
+  it('DELETE removes item from inventory', async () => {
+    const { dm, campaignId, joinCode } = await makeDMWithCampaign('20');
+    const player = await makePlayerInCampaign('20', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Dropper' });
+    const charId = charRes.body.id;
+
+    const addRes = await dm.post(`/api/characters/${charId}/inventory`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ item_name: 'Old Dagger', base_value_cp: 200 });
+    const itemId = addRes.body.id;
+
+    const del = await dm.delete(`/api/characters/${charId}/inventory/${itemId}`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(del.status, 200);
+
+    const inv = await player.get(`/api/characters/${charId}/inventory`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(inv.body.length, 0);
   });
 });
