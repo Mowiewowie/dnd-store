@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { GoldDisplay } from '../components/GoldDisplay.jsx';
 
 export function DMCharactersPage() {
-  const navigate = useNavigate();
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +18,6 @@ export function DMCharactersPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <button onClick={() => navigate('/dm')} className="text-parchment/40 hover:text-parchment text-sm mb-4">← Back to DM Panel</button>
       <h1 className="text-3xl text-gold mb-8" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Campaign Characters</h1>
 
       {characters.length === 0 ? (

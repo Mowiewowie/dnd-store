@@ -160,7 +160,12 @@ export function DMStorePage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <button onClick={() => navigate('/dm')} className="text-parchment/40 hover:text-parchment text-sm mb-4">← Back to DM Panel</button>
+      <button
+        onClick={() => navigate('/dm')}
+        className="inline-flex items-center gap-1.5 mb-6 px-3 py-1.5 rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
+      >
+        ← Markets
+      </button>
       <h1 className="text-3xl text-gold mb-8" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>{store.name} — Listings</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
