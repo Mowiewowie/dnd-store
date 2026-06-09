@@ -87,11 +87,12 @@ export function CampaignSelectPage() {
             Logout
           </button>
         </div>
-        <p className="text-parchment/40 text-sm mb-8">
+        <p className="text-parchment/40 text-sm mb-2">
           {user?.role === 'dm'
             ? 'Select a campaign to manage, or create a new one.'
             : 'Select a campaign to join the adventure.'}
         </p>
+        <div className="section-divider" />
 
         {loading ? (
           <p className="text-parchment/40 text-sm text-center">Loading...</p>

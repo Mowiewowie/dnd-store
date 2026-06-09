@@ -167,7 +167,8 @@ export function DMStorePage() {
       >
         ← Markets
       </button>
-      <h1 className="fantasy-heading text-3xl mb-8">{store.name} — Listings</h1>
+      <h1 className="fantasy-heading text-3xl">{store.name} — Listings</h1>
+      <div className="section-divider" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Add Item column */}

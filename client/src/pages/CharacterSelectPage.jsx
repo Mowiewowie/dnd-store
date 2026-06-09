@@ -69,7 +69,7 @@ export function CharacterSelectPage() {
     <div className="min-h-screen bg-base flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
         <div className="flex justify-between items-center mb-2">
-          <h1 className="fantasy-heading text-3xl">Choose Your Character</h1>
+          <h1 className="fantasy-heading text-3xl page-title-chars">Choose Your Character</h1>
           <button onClick={handleLogout} className="text-xs text-parchment/40 hover:text-ember-light transition-colors">
             Logout
           </button>
@@ -79,7 +79,8 @@ export function CharacterSelectPage() {
             Campaign: <span className="text-gold/70">{campaign.name}</span>
           </p>
         )}
-        <p className="text-parchment/40 text-center text-sm mb-8">Who ventures to the bazaar today?</p>
+        <p className="text-parchment/40 text-center text-sm mb-2">Who ventures to the bazaar today?</p>
+        <div className="section-divider" />
 
         {characters.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

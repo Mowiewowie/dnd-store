@@ -20,7 +20,8 @@ export function MarketPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="fantasy-heading text-3xl mb-2">The Adventurer's Bazaar</h1>
+      <h1 className="fantasy-heading text-3xl page-title-market">The Adventurer's Bazaar</h1>
+      <div className="section-divider" />
       <p className="text-parchment/40 text-sm mb-8">Choose a shop to browse their wares</p>
 
       {stores.length === 0 ? (

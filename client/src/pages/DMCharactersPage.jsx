@@ -18,7 +18,8 @@ export function DMCharactersPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="fantasy-heading text-3xl mb-8">Campaign Characters</h1>
+      <h1 className="fantasy-heading text-3xl page-title-chars">Campaign Characters</h1>
+      <div className="section-divider" />
 
       {characters.length === 0 ? (
         <p className="text-parchment/40 text-sm">No characters have been created yet.</p>

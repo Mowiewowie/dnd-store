@@ -60,7 +60,7 @@ export function Navbar() {
   const hasAccountActions = character || campaign;
 
   return (
-    <nav className="bg-ink border-b border-gold/30 px-4 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 shrink-0">
+    <nav className="navbar px-4 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 shrink-0">
 
       {/* ── Left: logo + campaign pill ── */}
       <div className="flex items-center gap-2 shrink-0">

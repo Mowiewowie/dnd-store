@@ -61,7 +61,8 @@ export function DMDashboardPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="fantasy-heading text-3xl mb-8">Markets</h1>
+      <h1 className="fantasy-heading text-3xl page-title-stores">Markets</h1>
+      <div className="section-divider" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Stores column */}
