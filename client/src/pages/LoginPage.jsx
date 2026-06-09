@@ -31,7 +31,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="card-fancy w-full max-w-md shadow-2xl p-8">
         <h1 className="fantasy-heading text-3xl text-center mb-1">⚔ The Bazaar</h1>
         <p className="text-parchment/40 text-center text-xs tracking-widest uppercase mb-6">

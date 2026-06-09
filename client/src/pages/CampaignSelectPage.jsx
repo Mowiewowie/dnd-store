@@ -77,7 +77,7 @@ export function CampaignSelectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
         <div className="flex justify-between items-center mb-2">
           <h1 className="fantasy-heading text-3xl">

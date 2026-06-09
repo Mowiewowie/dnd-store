@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { GoldDisplay } from '../components/GoldDisplay.jsx';
+import { OrnamentDivider } from '../components/OrnamentDivider.jsx';
+import { Toast } from '../components/Toast.jsx';
 import { fromCP, formatGold } from '../utils/gold.js';
 
 const TX_LABELS = {
-  purchase: { label: 'Bought', color: 'text-ember' },
-  sale: { label: 'Sold', color: 'text-emerald-400' },
-  adjustment: { label: 'Adjusted', color: 'text-parchment/60' },
+  purchase:      { label: 'Bought',   color: 'text-ember' },
+  sale:          { label: 'Sold',     color: 'text-gold-light' },
+  adjustment:    { label: 'Adjusted', color: 'text-parchment/60' },
   dm_adjustment: { label: 'DM Grant', color: 'text-gold/70' },
 };
 
@@ -21,11 +23,9 @@ export function DMCharacterPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
 
-  // Gold adjustment form
   const [goldForm, setGoldForm] = useState({ amount: '', unit: 'gp', direction: 'add', notes: '' });
   const [goldError, setGoldError] = useState('');
 
-  // Add item form
   const [itemForm, setItemForm] = useState({ item_name: '', item_description: '', base_value_cp: '' });
   const [itemError, setItemError] = useState('');
 
@@ -38,7 +38,6 @@ export function DMCharacterPage() {
       .catch(() => navigate('/dm/characters'))
       .finally(() => setLoading(false));
 
-    // Get character info from campaign list
     api.get('/characters/campaign')
       .then(list => {
         const found = list.find(c => String(c.id) === String(id));
@@ -114,37 +113,53 @@ export function DMCharacterPage() {
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center py-20 text-parchment/50">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-20 text-parchment/40">Loading...</div>;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <button onClick={() => navigate('/dm/characters')} className="text-parchment/40 hover:text-parchment text-sm mb-4">
-        ← Back to Characters
+      <button
+        onClick={() => navigate('/dm/characters')}
+        className="inline-flex items-center gap-1.5 mb-6 px-3 py-1.5 rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
+      >
+        ← Characters
       </button>
 
       {character && (
         <>
-          <h1 className="text-3xl text-gold mb-2" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>
-            {character.name}
-          </h1>
-          <p className="text-parchment/40 text-sm mb-6">{character.class} · Player: {character.username}</p>
+          <h1 className="fantasy-heading text-3xl page-title-chars">{character.name}</h1>
+          <div className="section-divider" />
 
-          <div className="bg-ink border border-gold/30 rounded-lg p-4 mb-6">
-            <p className="text-parchment/50 text-xs mb-1">Current Gold</p>
-            <GoldDisplay gp={character.gold_gp} sp={character.gold_sp} cp={character.gold_cp} className="text-xl" />
+          {/* Character summary */}
+          <div className="card-fancy p-5 mb-6">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-parchment/50 text-xs uppercase tracking-wider mb-1">Class</p>
+                <p className="text-parchment font-semibold">{character.class}</p>
+              </div>
+              <div>
+                <p className="text-parchment/50 text-xs uppercase tracking-wider mb-1">Player</p>
+                <p className="text-parchment/70 text-sm">{character.username}</p>
+              </div>
+              <div>
+                <p className="text-parchment/50 text-xs uppercase tracking-wider mb-1">Gold</p>
+                <GoldDisplay gp={character.gold_gp} sp={character.gold_sp} cp={character.gold_cp} className="text-lg" />
+              </div>
+            </div>
           </div>
         </>
       )}
 
       {/* Gold adjustment */}
-      <div className="bg-ink border border-gold/20 rounded-lg p-4 mb-6">
-        <h2 className="text-gold text-sm font-semibold mb-3" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Adjust Gold</h2>
+      <div className="card-fancy p-4 mb-6">
+        <h2 className="fantasy-heading text-sm mb-1">Adjust Gold</h2>
+        <OrnamentDivider className="my-2" />
         <form onSubmit={handleGoldAdjust} className="space-y-2">
           <div className="flex gap-2">
             <select
               value={goldForm.direction}
               onChange={e => setGoldForm(p => ({ ...p, direction: e.target.value }))}
-              className="bg-stone/20 border border-gold/20 rounded px-2 py-1.5 text-parchment text-sm focus:outline-none"
+              className="input-field text-sm !w-auto"
+              style={{ colorScheme: 'dark' }}
             >
               <option value="add">Give</option>
               <option value="subtract">Take / Deduct</option>
@@ -156,12 +171,13 @@ export function DMCharacterPage() {
               value={goldForm.amount}
               onChange={e => setGoldForm(p => ({ ...p, amount: e.target.value }))}
               placeholder="Amount"
-              className="flex-1 bg-stone/20 border border-gold/20 rounded px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm flex-1"
             />
             <select
               value={goldForm.unit}
               onChange={e => setGoldForm(p => ({ ...p, unit: e.target.value }))}
-              className="bg-stone/20 border border-gold/20 rounded px-2 py-1.5 text-parchment text-sm focus:outline-none"
+              className="input-field text-sm !w-auto"
+              style={{ colorScheme: 'dark' }}
             >
               <option value="gp">GP</option>
               <option value="sp">SP</option>
@@ -172,47 +188,49 @@ export function DMCharacterPage() {
             value={goldForm.notes}
             onChange={e => setGoldForm(p => ({ ...p, notes: e.target.value }))}
             placeholder="Reason (e.g. Quest reward, Fine, Loot)"
-            className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold/50"
+            className="input-field text-sm"
           />
-          {goldError && <p className="text-red-400 text-xs">{goldError}</p>}
-          <button type="submit" className="w-full bg-gold/80 hover:bg-gold text-ink font-bold py-1.5 rounded text-sm transition-colors">
+          {goldError && <p className="text-ember-light text-xs">{goldError}</p>}
+          <button type="submit" className="btn btn-primary w-full py-2 text-sm">
             Apply
           </button>
         </form>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-stone/20 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => setTab('inventory')}
-          className={`px-5 py-1.5 rounded text-sm font-semibold transition-colors ${tab === 'inventory' ? 'bg-gold text-ink' : 'text-parchment/50 hover:text-parchment'}`}
-        >
-          Inventory
-        </button>
-        <button
-          onClick={() => setTab('history')}
-          className={`px-5 py-1.5 rounded text-sm font-semibold transition-colors ${tab === 'history' ? 'bg-gold text-ink' : 'text-parchment/50 hover:text-parchment'}`}
-        >
-          History
-        </button>
+      {/* Tab bar — bottom border indicator */}
+      <div className="flex border-b border-gold/20 mb-6">
+        {[{ key: 'inventory', label: 'Inventory' }, { key: 'history', label: 'History' }].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`px-6 pb-2 text-sm font-semibold transition-colors ${
+              tab === key
+                ? 'text-gold border-b-2 border-gold -mb-px'
+                : 'text-parchment/40 hover:text-parchment/70'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {tab === 'inventory' && (
         <>
-          {/* Add item form */}
-          <form onSubmit={handleAddItem} className="bg-ink border border-gold/20 rounded-lg p-4 mb-4 space-y-2">
-            <h3 className="text-parchment/70 text-xs font-semibold">Grant Item</h3>
+          {/* Grant item form */}
+          <form onSubmit={handleAddItem} className="card-fancy p-4 mb-4 space-y-2">
+            <h3 className="text-parchment/70 text-xs uppercase tracking-wider">Grant Item</h3>
+            <OrnamentDivider className="my-2" />
             <input
               value={itemForm.item_name}
               onChange={e => setItemForm(p => ({ ...p, item_name: e.target.value }))}
               placeholder="Item name *"
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm"
             />
             <input
               value={itemForm.item_description}
               onChange={e => setItemForm(p => ({ ...p, item_description: e.target.value }))}
               placeholder="Description (optional)"
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm"
             />
             <input
               type="number"
@@ -220,10 +238,10 @@ export function DMCharacterPage() {
               value={itemForm.base_value_cp}
               onChange={e => setItemForm(p => ({ ...p, base_value_cp: e.target.value }))}
               placeholder="Base value (cp) — used for sell price"
-              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-1.5 text-parchment text-sm focus:outline-none focus:border-gold/50"
+              className="input-field text-sm"
             />
-            {itemError && <p className="text-red-400 text-xs">{itemError}</p>}
-            <button type="submit" className="w-full bg-gold/80 hover:bg-gold text-ink font-bold py-1.5 rounded text-sm transition-colors">
+            {itemError && <p className="text-ember-light text-xs">{itemError}</p>}
+            <button type="submit" className="btn btn-primary w-full py-2 text-sm">
               Add to Inventory
             </button>
           </form>
@@ -235,7 +253,7 @@ export function DMCharacterPage() {
               {inventory.map(item => {
                 const val = item.base_value_cp ? fromCP(item.base_value_cp) : null;
                 return (
-                  <div key={item.id} className="bg-ink border border-gold/20 rounded p-3 flex justify-between items-center">
+                  <div key={item.id} className="card p-3 flex justify-between items-center">
                     <div>
                       <p className="text-parchment text-sm font-semibold">{item.item_name}</p>
                       <p className="text-parchment/40 text-xs">
@@ -245,7 +263,7 @@ export function DMCharacterPage() {
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id, item.item_name)}
-                      className="text-ember hover:text-red-400 text-xs transition-colors"
+                      className="text-ember/60 hover:text-ember-light text-xs transition-colors"
                     >
                       Remove
                     </button>
@@ -267,7 +285,7 @@ export function DMCharacterPage() {
               const info = TX_LABELS[tx.type] || TX_LABELS.adjustment;
               const isSale = tx.type === 'sale';
               return (
-                <div key={tx.id} className="bg-ink border border-gold/20 rounded p-3 flex justify-between items-center">
+                <div key={tx.id} className="card p-3 flex justify-between items-center">
                   <div>
                     <p className="text-parchment text-sm font-semibold">{tx.item_name}</p>
                     <p className="text-parchment/40 text-xs">
@@ -276,7 +294,7 @@ export function DMCharacterPage() {
                       {' · '}{new Date(tx.purchased_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <p className={`text-sm font-semibold ${isSale ? 'text-emerald-400' : 'text-parchment/60'}`}>
+                  <p className={`text-sm font-semibold ${isSale ? 'text-gold-light' : 'text-parchment/60'}`}>
                     {isSale ? '+' : ''}{formatGold(gp, sp, cp)}
                   </p>
                 </div>
@@ -286,11 +304,7 @@ export function DMCharacterPage() {
         )
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 bg-ink border border-gold/40 rounded-lg px-4 py-3 text-parchment text-sm shadow-lg">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   );
 }
