@@ -74,6 +74,23 @@ describe('StoreDetailPage — Buy tab', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByText('Confirm Purchase')).not.toBeInTheDocument();
   });
+
+  it('confirming purchase closes modal and shows success toast', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getByText('Longsword'));
+
+    // Open modal
+    const buyBtns = screen.getAllByRole('button', { name: 'Buy' });
+    await userEvent.click(buyBtns[buyBtns.length - 1]);
+    await waitFor(() => screen.getByText('Confirm Purchase'));
+
+    // Confirm — modal's Buy is now the last Buy button in DOM
+    const confirmBtns = screen.getAllByRole('button', { name: 'Buy' });
+    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
+
+    await waitFor(() => expect(screen.queryByText('Confirm Purchase')).not.toBeInTheDocument());
+    expect(screen.getByText(/Purchased Longsword/i)).toBeInTheDocument();
+  });
 });
 
 describe('StoreDetailPage — Sell tab', () => {
@@ -144,5 +161,27 @@ describe('StoreDetailPage — Sell tab', () => {
     await waitFor(() => screen.getByRole('button', { name: 'Sell' }));
     await userEvent.click(screen.getByRole('button', { name: 'Sell' }));
     await waitFor(() => expect(screen.getByText(/inventory is empty/i)).toBeInTheDocument());
+  });
+
+  it('confirming sell closes modal and shows success toast with gold received', async () => {
+    renderWithProviders(<StoreDetailPage />);
+    await waitFor(() => screen.getByText('Ye Olde Shoppe'));
+
+    // Switch to sell tab (only one Sell button before inventory loads)
+    await userEvent.click(screen.getByRole('button', { name: 'Sell' }));
+    await waitFor(() => screen.getByText(MOCK_INVENTORY_ITEM.item_name));
+
+    // Open sell modal (last Sell button = item card's Sell)
+    const sellBtns = screen.getAllByRole('button', { name: 'Sell' });
+    await userEvent.click(sellBtns[sellBtns.length - 1]);
+    await waitFor(() => screen.getByText('Confirm Sale'));
+
+    // Confirm — modal's Sell is now the last Sell button in DOM
+    const confirmBtns = screen.getAllByRole('button', { name: 'Sell' });
+    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
+
+    await waitFor(() => expect(screen.queryByText('Confirm Sale')).not.toBeInTheDocument());
+    // Mock returns gold_received_cp: 750 → 7 GP 5 SP
+    expect(screen.getByText(/Sold Old Cloak/i)).toBeInTheDocument();
   });
 });

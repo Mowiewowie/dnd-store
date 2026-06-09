@@ -122,6 +122,35 @@ describe('DMStorePage — quantity controls', () => {
     expect(calls[calls.length - 1].body).toEqual({ quantity: 10 });
   });
 
+  it('clicking Remove calls DELETE /api/listings/:id and removes the listing from the UI', async () => {
+    const deleted = [];
+    server.use(http.delete('/api/listings/:id', ({ params }) => {
+      deleted.push(Number(params.id));
+      return HttpResponse.json({ ok: true });
+    }));
+
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+
+    const removeBtns = screen.getAllByRole('button', { name: 'Remove' });
+    await userEvent.click(removeBtns[0]);
+
+    await waitFor(() => expect(deleted).toContain(1));
+    expect(screen.queryByText('Longsword')).not.toBeInTheDocument();
+  });
+
+  it('removing one listing leaves the other intact', async () => {
+    server.use(http.delete('/api/listings/:id', () => HttpResponse.json({ ok: true })));
+
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0]);
+
+    await waitFor(() => expect(screen.queryByText('Longsword')).not.toBeInTheDocument());
+    expect(screen.getByText('Dragon Scale')).toBeInTheDocument();
+  });
+
   it('blurring the qty input after typing commits the change via PUT', async () => {
     const calls = [];
     server.use(putHandler(c => calls.push(c)));
@@ -138,5 +167,34 @@ describe('DMStorePage — quantity controls', () => {
 
     await waitFor(() => expect(calls.length).toBeGreaterThan(0));
     expect(calls[calls.length - 1].body).toEqual({ quantity: 3 });
+  });
+});
+
+describe('DMStorePage — add listing form', () => {
+  it('submitting the form with a name and price adds the listing and shows a toast', async () => {
+    server.use(http.post('/api/stores/:id/listings', async ({ request }) => {
+      const body = await request.json();
+      return HttpResponse.json(
+        { id: 99, store_id: 1, item_name: body.item_name, custom_price_cp: body.custom_price_cp ?? null, srd_default_cp: null, effective_price_cp: body.custom_price_cp ?? 0, quantity: body.quantity ?? 1 },
+        { status: 201 }
+      );
+    }));
+
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+
+    await userEvent.type(screen.getByPlaceholderText('Item name *'), 'Fireball Scroll');
+    await userEvent.type(screen.getByPlaceholderText('0 cp'), '5000');
+    await userEvent.click(screen.getByRole('button', { name: 'Add to Store' }));
+
+    await waitFor(() => expect(screen.getByText('Listing added!')).toBeInTheDocument());
+    expect(screen.getByText('Fireball Scroll')).toBeInTheDocument();
+  });
+
+  it('shows the item name input and Add to Store button', async () => {
+    renderWithProviders(<DMStorePage />);
+    await waitFor(() => screen.getByText('Longsword'));
+    expect(screen.getByPlaceholderText('Item name *')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add to Store' })).toBeInTheDocument();
   });
 });

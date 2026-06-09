@@ -22,4 +22,20 @@ describe('MarketPage', () => {
     renderWithProviders(<MarketPage />);
     await waitFor(() => expect(screen.getByText(/No shops are open/i)).toBeInTheDocument());
   });
+
+  it('shows Closed badge for a closed store', async () => {
+    server.use(http.get('/api/stores', () => HttpResponse.json([
+      { id: 2, name: 'Dusty Cellar', location: null, description: null, is_open: 0 },
+    ])));
+    renderWithProviders(<MarketPage />);
+    await waitFor(() => expect(screen.getByText('Dusty Cellar')).toBeInTheDocument());
+    expect(screen.getByText('Closed')).toBeInTheDocument();
+  });
+
+  it('store card links to the store detail page', async () => {
+    renderWithProviders(<MarketPage />);
+    await waitFor(() => screen.getByText('Ye Olde Shoppe'));
+    const link = screen.getByRole('link', { name: /Ye Olde Shoppe/i });
+    expect(link).toHaveAttribute('href', '/market/1');
+  });
 });

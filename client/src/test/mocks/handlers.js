@@ -44,6 +44,7 @@ export const handlers = [
 
   http.get('/api/stores', () => HttpResponse.json([MOCK_STORE])),
   http.get('/api/stores/:id', () => HttpResponse.json({ ...MOCK_STORE, listings: [MOCK_LISTING] })),
+  http.put('/api/stores/:id', () => HttpResponse.json({ ...MOCK_STORE, is_open: 0 })),
   http.post('/api/stores/:id/sell', () => HttpResponse.json({
     gold_received_cp: 750,
     character: { ...MOCK_CHARACTER, gold_gp: 57, gold_sp: 5, gold_cp: 0 },
@@ -53,6 +54,9 @@ export const handlers = [
     transaction: { id: 1, item_name: 'Longsword', price_paid_cp: 1500 },
     character: { ...MOCK_CHARACTER, gold_gp: 35, gold_sp: 0, gold_cp: 0 },
   })),
+
+  http.get('/api/dm/settings', () => HttpResponse.json({ price_multiplier: '1.0' })),
+  http.put('/api/dm/settings', () => HttpResponse.json({ price_multiplier: '1.5' })),
 
   http.get('/api/items/search', () => HttpResponse.json([
     { index: 'longsword', name: 'Longsword', srd_default_cp: 1500, description: 'A martial weapon.' },
