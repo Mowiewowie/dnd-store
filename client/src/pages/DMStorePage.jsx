@@ -31,12 +31,19 @@ export function DMStorePage() {
   const [priceOverride, setPriceOverride] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [qtyInputs, setQtyInputs] = useState({});
   const searchRef = useRef(null);
   const biasTimerRef = useRef(null);
 
   useEffect(() => {
     api.get(`/stores/${id}`)
-      .then(s => { setStore(s); setBias(s.price_bias ?? 0); })
+      .then(s => {
+        setStore(s);
+        setBias(s.price_bias ?? 0);
+        const initQty = {};
+        s.listings.forEach(l => { initQty[l.id] = String(l.quantity); });
+        setQtyInputs(initQty);
+      })
       .catch(() => navigate('/dm'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -121,6 +128,31 @@ export function DMStorePage() {
     } catch (err) {
       showToast(`Error: ${err.message}`);
     }
+  }
+
+  async function commitQty(listingId, newQty) {
+    const qty = Math.max(0, Math.floor(newQty));
+    if (isNaN(qty)) return;
+    setQtyInputs(prev => ({ ...prev, [listingId]: String(qty) }));
+    try {
+      const updated = await api.put(`/listings/${listingId}`, { quantity: qty });
+      setStore(prev => ({
+        ...prev,
+        listings: prev.listings.map(l => l.id === listingId ? { ...l, quantity: updated.quantity } : l),
+      }));
+    } catch (err) {
+      showToast(`Error: ${err.message}`);
+    }
+  }
+
+  function handleQtyStep(listingId, current, delta) {
+    commitQty(listingId, current + delta);
+  }
+
+  function handleQtyInputBlur(listingId) {
+    const raw = qtyInputs[listingId];
+    const parsed = parseInt(raw, 10);
+    commitQty(listingId, isNaN(parsed) ? 0 : parsed);
   }
 
   if (loading) return <div className="flex items-center justify-center py-20 text-parchment/50">Loading...</div>;
@@ -273,18 +305,47 @@ export function DMStorePage() {
               {store.listings.map(listing => {
                 const price = listing.effective_price_cp ?? listing.custom_price_cp ?? 0;
                 const { gp, sp, cp } = fromCP(price);
+                const currentQty = listing.quantity;
+                const inputVal = qtyInputs[listing.id] ?? String(currentQty);
                 return (
-                  <div key={listing.id} className="bg-ink border border-gold/20 rounded p-3 flex justify-between items-center">
-                    <div>
-                      <p className="text-parchment text-sm font-semibold">{listing.item_name}</p>
-                      <p className="text-parchment/40 text-xs">Qty: {listing.quantity} · {formatGold(gp, sp, cp)}</p>
+                  <div key={listing.id} className="bg-ink border border-gold/20 rounded p-3">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-parchment text-sm font-semibold truncate">{listing.item_name}</p>
+                        <p className="text-parchment/40 text-xs mt-0.5">{formatGold(gp, sp, cp)}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Quantity stepper */}
+                        <button
+                          onClick={() => handleQtyStep(listing.id, currentQty, -1)}
+                          className="w-6 h-6 flex items-center justify-center rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
+                          title="Decrease quantity"
+                        >−</button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={inputVal}
+                          onChange={e => setQtyInputs(prev => ({ ...prev, [listing.id]: e.target.value }))}
+                          onBlur={() => handleQtyInputBlur(listing.id)}
+                          onKeyDown={e => e.key === 'Enter' && handleQtyInputBlur(listing.id)}
+                          className="w-12 text-center bg-stone/20 border border-gold/20 rounded px-1 py-0.5 text-parchment text-xs focus:outline-none focus:border-gold/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => handleQtyStep(listing.id, currentQty, 1)}
+                          className="w-6 h-6 flex items-center justify-center rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
+                          title="Increase quantity"
+                        >+</button>
+                        <button
+                          onClick={() => handleDeleteListing(listing.id)}
+                          className="ml-1 text-ember hover:text-red-400 text-xs transition-colors px-1"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteListing(listing.id)}
-                      className="text-ember hover:text-red-400 text-xs transition-colors"
-                    >
-                      Remove
-                    </button>
+                    {currentQty === 0 && (
+                      <p className="text-parchment/30 text-xs mt-1 italic">Out of stock</p>
+                    )}
                   </div>
                 );
               })}

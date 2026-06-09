@@ -121,7 +121,7 @@ export function StoreDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (tab === 'sell' && character && inventory.length === 0) {
+    if (tab === 'sell' && character) {
       setInventoryLoading(true);
       api.get(`/characters/${character.id}/inventory`)
         .then(setInventory)
@@ -147,12 +147,10 @@ export function StoreDetailPage() {
         ...prev,
         listings: prev.listings.map(l =>
           l.id === selectedListing.id ? { ...l, quantity: l.quantity - 1 } : l
-        ).filter(l => l.quantity > 0),
+        ),
       }));
-      // Refresh inventory since it may have changed
-      if (tab === 'sell') {
-        api.get(`/characters/${character.id}/inventory`).then(setInventory).catch(() => {});
-      }
+      // Always refresh inventory so the Sell tab stays current
+      api.get(`/characters/${character.id}/inventory`).then(setInventory).catch(() => {});
       showToast(`Purchased ${selectedListing.item_name}!`);
     } catch (err) {
       showToast(`Error: ${err.message}`);
@@ -195,9 +193,10 @@ export function StoreDetailPage() {
   }
   if (!store) return null;
 
+  const availableListings = store.listings.filter(l => l.quantity > 0);
   const filtered = filter
-    ? store.listings.filter(l => l.item_name.toLowerCase().includes(filter.toLowerCase()))
-    : store.listings;
+    ? availableListings.filter(l => l.item_name.toLowerCase().includes(filter.toLowerCase()))
+    : availableListings;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -227,7 +226,7 @@ export function StoreDetailPage() {
 
       {tab === 'buy' && (
         <>
-          {store.listings.length > 4 && (
+          {availableListings.length > 4 && (
             <input
               value={filter}
               onChange={e => setFilter(e.target.value)}
@@ -237,7 +236,7 @@ export function StoreDetailPage() {
           )}
           {filtered.length === 0 ? (
             <div className="text-center py-12 text-parchment/30">
-              <p>{store.listings.length === 0 ? 'This store has no items for sale.' : 'No items match your search.'}</p>
+              <p>{availableListings.length === 0 ? 'This store has no items for sale.' : 'No items match your search.'}</p>
             </div>
           ) : (
             <div className="space-y-3">
