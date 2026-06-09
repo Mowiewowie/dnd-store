@@ -55,3 +55,76 @@ describe('CharacterSelectPage', () => {
     expect(input).toBeInvalid();
   });
 });
+
+describe('CharacterSelectPage — delete character', () => {
+  it('shows a delete button for each character card', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    expect(screen.getByRole('button', { name: 'Delete Thorin' })).toBeInTheDocument();
+  });
+
+  it('clicking delete opens the confirmation modal', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    expect(screen.getByText('Delete Character')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Type the name to confirm')).toBeInTheDocument();
+  });
+
+  it('modal shows the character name in the confirmation prompt', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    expect(screen.getByText('Thorin', { selector: 'span' })).toBeInTheDocument();
+  });
+
+  it('Delete button is disabled before any name is typed', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  });
+
+  it('Delete button stays disabled when wrong name is typed', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    await userEvent.type(screen.getByPlaceholderText('Type the name to confirm'), 'Thor');
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  });
+
+  it('Delete button enables when the exact character name is typed', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    await userEvent.type(screen.getByPlaceholderText('Type the name to confirm'), 'Thorin');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete' })).not.toBeDisabled());
+  });
+
+  it('confirming delete removes the character from the list', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    await userEvent.type(screen.getByPlaceholderText('Type the name to confirm'), 'Thorin');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.queryByText('Thorin')).not.toBeInTheDocument());
+  });
+
+  it('confirming delete closes the modal', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    await userEvent.type(screen.getByPlaceholderText('Type the name to confirm'), 'Thorin');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.queryByText('Delete Character')).not.toBeInTheDocument());
+  });
+
+  it('cancelling the modal closes it without removing the character', async () => {
+    renderWithProviders(<CharacterSelectPage />);
+    await waitFor(() => screen.getByText('Thorin'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Thorin' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByText('Delete Character')).not.toBeInTheDocument();
+    expect(screen.getByText('Thorin')).toBeInTheDocument();
+  });
+});

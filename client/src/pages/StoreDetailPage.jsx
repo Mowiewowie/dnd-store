@@ -200,7 +200,12 @@ export function StoreDetailPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <button onClick={() => navigate('/market')} className="text-parchment/40 hover:text-parchment text-sm mb-4">← Back to Market</button>
+      <button
+        onClick={() => navigate('/market')}
+        className="inline-flex items-center gap-1.5 mb-6 px-3 py-1.5 rounded border border-gold/20 hover:border-gold/50 text-parchment/60 hover:text-parchment text-sm transition-colors"
+      >
+        ← Market
+      </button>
 
       <div className="mb-6">
         <h1 className="text-3xl text-gold" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>{store.name}</h1>

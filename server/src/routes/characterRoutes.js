@@ -59,6 +59,30 @@ router.post('/', requireAuth, requireCampaign, (req, res) => {
   res.status(201).json(character);
 });
 
+// DELETE /characters/:id — player deletes their own character
+router.delete('/:id', requireAuth, requireCampaign, (req, res) => {
+  const db = getDb();
+  const character = db.prepare(
+    'SELECT id, user_id, campaign_id FROM characters WHERE id = ?'
+  ).get(req.params.id);
+
+  if (!character) return res.status(404).json({ error: 'Character not found' });
+  if (character.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+  if (character.campaign_id !== req.campaignId) return res.status(403).json({ error: 'Forbidden' });
+
+  db.exec('BEGIN');
+  try {
+    db.prepare('DELETE FROM transactions WHERE character_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM characters WHERE id = ?').run(req.params.id);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+
+  res.json({ ok: true });
+});
+
 // GET /characters/:id/transactions — player-own or DM
 router.get('/:id/transactions', requireAuth, requireCampaign, (req, res) => {
   const db = getDb();

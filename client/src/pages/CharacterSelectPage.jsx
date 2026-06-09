@@ -18,6 +18,11 @@ export function CharacterSelectPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Delete modal state
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+
   useEffect(() => {
     api.get('/characters').then(setCharacters).catch(() => {});
   }, []);
@@ -40,6 +45,19 @@ export function CharacterSelectPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (deleteConfirmName !== deleteTarget.name) return;
+    try {
+      await api.delete(`/characters/${deleteTarget.id}`);
+      setCharacters(prev => prev.filter(c => c.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      setDeleteConfirmName('');
+      setDeleteError('');
+    } catch (err) {
+      setDeleteError(err.message);
     }
   }
 
@@ -69,10 +87,13 @@ export function CharacterSelectPage() {
         {characters.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {characters.map(char => (
-              <button
+              <div
                 key={char.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelect(char)}
-                className="bg-ink border border-gold/30 hover:border-gold/70 rounded-lg p-4 text-left transition-all hover:bg-stone/10 group"
+                onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleSelect(char)}
+                className="bg-ink border border-gold/30 hover:border-gold/70 rounded-lg p-4 text-left transition-all hover:bg-stone/10 group cursor-pointer"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -83,7 +104,17 @@ export function CharacterSelectPage() {
                   </div>
                   <GoldDisplay gp={char.gold_gp} sp={char.gold_sp} cp={char.gold_cp} className="text-sm" />
                 </div>
-              </button>
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setDeleteTarget(char); setDeleteConfirmName(''); setDeleteError(''); }}
+                    className="text-parchment/25 hover:text-ember text-xs transition-colors"
+                    aria-label={`Delete ${char.name}`}
+                  >
+                    Delete character
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -139,6 +170,42 @@ export function CharacterSelectPage() {
           </form>
         )}
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-ink border border-gold/40 rounded-lg p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-ember mb-2" style={{ fontFamily: 'Cinzel, Georgia, serif' }}>Delete Character</h2>
+            <p className="text-parchment/60 text-sm mb-4">
+              This is permanent. Type{' '}
+              <span className="text-parchment font-semibold">{deleteTarget.name}</span>{' '}
+              to confirm.
+            </p>
+            <input
+              value={deleteConfirmName}
+              onChange={e => setDeleteConfirmName(e.target.value)}
+              placeholder="Type the name to confirm"
+              autoFocus
+              className="w-full bg-stone/20 border border-gold/20 rounded px-3 py-2 text-parchment text-sm mb-4 focus:outline-none focus:border-ember/50"
+            />
+            {deleteError && <p className="text-red-400 text-xs mb-2">{deleteError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={handleDelete}
+                disabled={deleteConfirmName !== deleteTarget.name}
+                className="flex-1 bg-ember/80 hover:bg-ember text-white font-bold py-2 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteConfirmName(''); setDeleteError(''); }}
+                className="flex-1 border border-gold/20 text-parchment/60 hover:text-parchment py-2 rounded transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

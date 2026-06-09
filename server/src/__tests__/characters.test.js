@@ -264,6 +264,64 @@ describe('PATCH /api/characters/:id/money — edge cases', () => {
   });
 });
 
+describe('DELETE /api/characters/:id', () => {
+  it('player can delete their own character', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('30');
+    const player = await makePlayerInCampaign('30', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Doomed Hero' });
+    const charId = charRes.body.id;
+
+    const del = await player.delete(`/api/characters/${charId}`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(del.status, 200);
+    assert.equal(del.body.ok, true);
+
+    const list = await player.get('/api/characters').set('X-Campaign-Id', String(campaignId));
+    assert.equal(list.body.find(c => c.id === charId), undefined);
+  });
+
+  it('deleting a character with transactions succeeds (no FK violation)', async () => {
+    const { dm, campaignId, joinCode } = await makeDMWithCampaign('31');
+    const player = await makePlayerInCampaign('31', joinCode);
+    const charRes = await player.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Veteran', gold_gp: 100 });
+    const charId = charRes.body.id;
+
+    // Add a transaction (gold adjustment creates a transaction record)
+    await dm.patch(`/api/characters/${charId}/money`)
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ delta_cp: 100, notes: 'Test loot' });
+
+    const del = await player.delete(`/api/characters/${charId}`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(del.status, 200);
+  });
+
+  it('player cannot delete another player\'s character', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('32');
+    const player1 = await makePlayerInCampaign('32a', joinCode);
+    const player2 = await makePlayerInCampaign('32b', joinCode);
+    const charRes = await player1.post('/api/characters')
+      .set('X-Campaign-Id', String(campaignId))
+      .send({ name: 'Protected' });
+
+    const res = await player2.delete(`/api/characters/${charRes.body.id}`)
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(res.status, 403);
+  });
+
+  it('returns 404 for a non-existent character', async () => {
+    const { campaignId, joinCode } = await makeDMWithCampaign('33');
+    const player = await makePlayerInCampaign('33', joinCode);
+    const res = await player.delete('/api/characters/99999')
+      .set('X-Campaign-Id', String(campaignId));
+    assert.equal(res.status, 404);
+  });
+});
+
 describe('Character inventory endpoints', () => {
   it('GET /inventory returns empty array initially', async () => {
     const { campaignId, joinCode } = await makeDMWithCampaign('17');

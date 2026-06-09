@@ -37,6 +37,7 @@ export const handlers = [
     { id: 99, character_id: 1, item_name: 'Dragon Scale', item_description: null, quantity: 1, base_value_cp: 5000 },
     { status: 201 }
   )),
+  http.delete('/api/characters/:id', () => HttpResponse.json({ ok: true })),
   http.delete('/api/characters/:charId/inventory/:itemId', () => HttpResponse.json({ ok: true })),
   http.patch('/api/characters/:id/money', () => HttpResponse.json(
     { ...MOCK_CHARACTER, gold_gp: 55 }
