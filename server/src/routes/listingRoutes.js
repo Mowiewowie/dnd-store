@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { requireDM, requireCampaign } from '../auth.js';
+import { requireCampaignDM } from '../auth.js';
 
 const router = Router();
 
-router.put('/:id', requireDM, requireCampaign, (req, res) => {
+router.put('/:id', requireCampaignDM, (req, res) => {
   const { item_name, item_description, custom_price_cp, srd_default_cp, quantity } = req.body;
   const db = getDb();
   const listing = db.prepare(
@@ -28,7 +28,7 @@ router.put('/:id', requireDM, requireCampaign, (req, res) => {
   res.json(db.prepare('SELECT * FROM listings WHERE id = ?').get(Number(req.params.id)));
 });
 
-router.delete('/:id', requireDM, requireCampaign, (req, res) => {
+router.delete('/:id', requireCampaignDM, (req, res) => {
   const db = getDb();
   const listing = db.prepare(
     'SELECT l.id, s.campaign_id FROM listings l JOIN stores s ON l.store_id = s.id WHERE l.id = ?'

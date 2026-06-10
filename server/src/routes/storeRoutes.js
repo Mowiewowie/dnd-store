@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { requireAuth, requireDM, requireCampaign } from '../auth.js';
+import { requireAuth, requireCampaign, requireCampaignDM } from '../auth.js';
 import { toCP, fromCP } from '../gold.js';
 
 // bias: -2 (Generous) → 1.0, 0 (Impartial) → 0.75, +2 (Cutthroat) → 0.50
@@ -25,7 +25,7 @@ router.get('/', requireAuth, requireCampaign, (req, res) => {
   res.json(stores);
 });
 
-router.post('/', requireDM, requireCampaign, (req, res) => {
+router.post('/', requireCampaignDM, (req, res) => {
   const { name, description, location } = req.body;
   if (!name || name.trim().length === 0) {
     return res.status(400).json({ error: 'Store name is required' });
@@ -63,7 +63,7 @@ router.get('/:id', requireAuth, requireCampaign, (req, res) => {
   res.json({ ...store, listings });
 });
 
-router.put('/:id', requireDM, requireCampaign, (req, res) => {
+router.put('/:id', requireCampaignDM, (req, res) => {
   const { name, description, location, is_open } = req.body;
   const db = getDb();
   const store = db.prepare('SELECT * FROM stores WHERE id = ?').get(req.params.id);
@@ -84,7 +84,7 @@ router.put('/:id', requireDM, requireCampaign, (req, res) => {
 
 // Update Merchant's Temperament (price bias) for a store
 // bias: -2.0 (Generous) to +2.0 (Cutthroat), shifts the bell curve peak
-router.patch('/:id/temperament', requireDM, requireCampaign, (req, res) => {
+router.patch('/:id/temperament', requireCampaignDM, (req, res) => {
   const bias = parseFloat(req.body.bias);
   if (isNaN(bias) || bias < -2 || bias > 2) {
     return res.status(400).json({ error: 'bias must be a number between -2 and 2' });
@@ -160,7 +160,7 @@ router.post('/:id/sell', requireAuth, requireCampaign, (req, res) => {
   res.json({ gold_received_cp: totalOfferCP, character: updatedCharacter });
 });
 
-router.delete('/:id', requireDM, requireCampaign, (req, res) => {
+router.delete('/:id', requireCampaignDM, (req, res) => {
   const db = getDb();
   const store = db.prepare('SELECT id, campaign_id FROM stores WHERE id = ?').get(req.params.id);
   if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -169,7 +169,7 @@ router.delete('/:id', requireDM, requireCampaign, (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/:id/listings', requireDM, requireCampaign, (req, res) => {
+router.post('/:id/listings', requireCampaignDM, (req, res) => {
   const { item_srd_index, item_name, item_description, custom_price_cp, srd_default_cp, quantity = 1 } = req.body;
   if (!item_name || item_name.trim().length === 0) {
     return res.status(400).json({ error: 'Item name is required' });

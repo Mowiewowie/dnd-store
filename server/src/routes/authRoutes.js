@@ -2,11 +2,12 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { getDb } from '../db.js';
 import { signToken, setAuthCookie, clearAuthCookie, requireAuth } from '../auth.js';
+import { authLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 const SALT_ROUNDS = 12;
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { username, password, role = 'player' } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
@@ -38,7 +39,7 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ id: userId, username: username.trim(), role });
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });

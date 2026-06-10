@@ -16,6 +16,12 @@ import itemRoutes from './routes/itemRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Behind Azure App Service's reverse proxy, trust the first X-Forwarded-* hop
+// so req.ip reflects the real client (correct per-IP rate limiting + secure cookies).
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
   credentials: true,

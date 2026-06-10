@@ -16,6 +16,7 @@ export function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
@@ -58,4 +59,27 @@ export function requireCampaign(req, res, next) {
 
   req.campaignId = campaignId;
   next();
+}
+
+// True when the current user owns (is the DM of) the selected campaign.
+// Must be used after requireCampaign so req.campaignId / req.user are set.
+export function isCampaignDM(req) {
+  if (!req.campaignId || !req.user) return false;
+  const db = getDb();
+  const campaign = db.prepare('SELECT dm_id FROM campaigns WHERE id = ?').get(req.campaignId);
+  return !!campaign && campaign.dm_id === req.user.id;
+}
+
+// Authorizes DM-only actions against campaign *ownership*, not the global
+// 'dm' role. Prevents any role:'dm' member from controlling a campaign they
+// merely joined — only the campaign's own DM passes.
+export function requireCampaignDM(req, res, next) {
+  requireAuth(req, res, () => {
+    requireCampaign(req, res, () => {
+      if (!isCampaignDM(req)) {
+        return res.status(403).json({ error: 'DM access required' });
+      }
+      next();
+    });
+  });
 }

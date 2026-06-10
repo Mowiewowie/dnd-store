@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { requireAuth, requireCampaign } from '../auth.js';
+import { requireAuth, requireCampaign, isCampaignDM } from '../auth.js';
 import { toCP, fromCP } from '../gold.js';
 
 const router = Router();
@@ -8,7 +8,7 @@ const router = Router();
 function canAccessCharacter(req, character) {
   if (!character) return false;
   if (character.campaign_id !== req.campaignId) return false;
-  return req.user.role === 'dm' || character.user_id === req.user.id;
+  return character.user_id === req.user.id || isCampaignDM(req);
 }
 
 // GET /characters — player's own characters in campaign
@@ -22,7 +22,7 @@ router.get('/', requireAuth, requireCampaign, (req, res) => {
 
 // GET /characters/campaign — DM: all characters in campaign
 router.get('/campaign', requireAuth, requireCampaign, (req, res) => {
-  if (req.user.role !== 'dm') return res.status(403).json({ error: 'DM access required' });
+  if (!isCampaignDM(req)) return res.status(403).json({ error: 'DM access required' });
   const db = getDb();
   const characters = db.prepare(
     `SELECT c.id, c.name, c.class, c.gold_gp, c.gold_sp, c.gold_cp, u.username
@@ -117,7 +117,7 @@ router.patch('/:id/money', requireAuth, requireCampaign, (req, res) => {
   if (newCP < 0) return res.status(400).json({ error: 'Cannot reduce gold below zero' });
 
   const { gp, sp, cp } = fromCP(newCP);
-  const txType = req.user.role === 'dm' ? 'dm_adjustment' : 'adjustment';
+  const txType = isCampaignDM(req) ? 'dm_adjustment' : 'adjustment';
   const txNotes = notes?.trim() || (delta_cp > 0 ? 'Gold added' : 'Gold removed');
 
   db.exec('BEGIN');
@@ -152,7 +152,7 @@ router.get('/:id/inventory', requireAuth, requireCampaign, (req, res) => {
 
 // POST /characters/:id/inventory — DM adds item to character
 router.post('/:id/inventory', requireAuth, requireCampaign, (req, res) => {
-  if (req.user.role !== 'dm') return res.status(403).json({ error: 'DM access required' });
+  if (!isCampaignDM(req)) return res.status(403).json({ error: 'DM access required' });
   const { item_name, item_description, item_srd_index, quantity = 1, base_value_cp, rarity } = req.body;
   if (!item_name || item_name.trim().length === 0) {
     return res.status(400).json({ error: 'Item name is required' });

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { requireDM, requireCampaign } from '../auth.js';
+import { requireCampaignDM } from '../auth.js';
 
 const router = Router();
 
@@ -8,13 +8,13 @@ function multiplierKey(campaignId) {
   return `campaign_${campaignId}_price_multiplier`;
 }
 
-router.get('/settings', requireDM, requireCampaign, (req, res) => {
+router.get('/settings', requireCampaignDM, (req, res) => {
   const db = getDb();
   const row = db.prepare('SELECT value FROM dm_settings WHERE key = ?').get(multiplierKey(req.campaignId));
   res.json({ price_multiplier: row?.value ?? '1.0' });
 });
 
-router.put('/settings', requireDM, requireCampaign, (req, res) => {
+router.put('/settings', requireCampaignDM, (req, res) => {
   const { price_multiplier } = req.body;
   const db = getDb();
 
