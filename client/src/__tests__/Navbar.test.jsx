@@ -91,6 +91,28 @@ describe('Navbar — campaign', () => {
   });
 });
 
+describe('Navbar — mobile short logo', () => {
+  it('renders the short "Bazaar" label for mobile viewports', async () => {
+    const { container } = renderWithProviders(<Navbar />);
+    await waitFor(() => screen.getByText(/The Adventurer's Bazaar/));
+    // The sm:hidden span contains the condensed mobile label
+    const mobileSpan = Array.from(container.querySelectorAll('span'))
+      .find(el => el.classList.contains('sm:hidden') && /Bazaar/i.test(el.textContent));
+    expect(mobileSpan).toBeTruthy();
+  });
+
+  it('mobile short label is inside the same anchor as the full logo', async () => {
+    const { container } = renderWithProviders(<Navbar />);
+    await waitFor(() => screen.getByText(/The Adventurer's Bazaar/));
+    const mobileSpan = Array.from(container.querySelectorAll('span'))
+      .find(el => el.classList.contains('sm:hidden') && /Bazaar/i.test(el.textContent));
+    expect(mobileSpan?.closest('a')).toHaveAttribute('href', '/');
+  });
+});
+
+// Safe-area padding is tested at the source-code level in static.test.js
+// (jsdom does not evaluate env() CSS values, so DOM-level checks are not reliable here).
+
 describe('Navbar — user dropdown', () => {
   it('shows user avatar button with first letter of username', async () => {
     renderWithProviders(<Navbar />);
